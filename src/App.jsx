@@ -37,35 +37,48 @@ function App() {
 
   // 2. The Distance Calculator Loop
   const submitGuess = (e) => {
-    e.preventDefault();
-    if (!validGuess || gameWon) return;
+      e.preventDefault();
+      if (!validGuess || gameWon) return;
 
-    // Find the full country objects for both the guess and the target
-    const guessedCountryObj = countries.find(c => c.name.common.toLowerCase() === guess.toLowerCase());
-    
-    if (guessedCountryObj.name.common === targetCountry.name.common) {
-      setGameWon(true);
-      setGuesses([{ name: guess, distance: 0, direction: "🎉" }, ...guesses]);
-    } else {
-      // Grab coordinates from your JSON (Format in mledoze repo: [lat, lng])
-      const fromCoords = { latitude: guessedCountryObj.latlng[0], longitude: guessedCountryObj.latlng[1] };
-      const toCoords = { latitude: targetCountry.latlng[0], longitude: targetCountry.latlng[1] };
+      // Find the full country objects for both the guess and the target
+      const guessedCountryObj = countries.find(c => c.name.common.toLowerCase() === guess.toLowerCase());
+      
+      if (guessedCountryObj.name.common === targetCountry.name.common) {
+        setGameWon(true);
+        // OPTION 1 (WINNING GUESS): Added latlng and cca3 here so it centers and colors yellow on a win!
+        setGuesses([{ 
+          name: guessedCountryObj.name.common, 
+          distance: 0, 
+          direction: "🎉",
+          latlng: guessedCountryObj.latlng,
+          cca3: guessedCountryObj.cca3 
+        }, ...guesses]);
+      } else {
+        // Grab coordinates from your JSON (Format in mledoze repo: [lat, lng])
+        const fromCoords = { latitude: guessedCountryObj.latlng[0], longitude: guessedCountryObj.latlng[1] };
+        const toCoords = { latitude: targetCountry.latlng[0], longitude: targetCountry.latlng[1] };
 
-      // Calculate distance in meters, then convert to kilometers
-      const distanceInMeters = getDistance(fromCoords, toCoords);
-      const distanceInKm = Math.round(distanceInMeters / 1000);
+        // Calculate distance in meters, then convert to kilometers
+        const distanceInMeters = getDistance(fromCoords, toCoords);
+        const distanceInKm = Math.round(distanceInMeters / 1000);
 
-      // Calculate compass bearing direction (N, NE, S, SW, etc.)
-      const direction = getCompassDirection(fromCoords, toCoords);
+        // Calculate compass bearing direction (N, NE, S, SW, etc.)
+        const direction = getCompassDirection(fromCoords, toCoords);
 
-      // Add to our guessing history grid
-      setGuesses([{ name: guessedCountryObj.name.common, distance: distanceInKm, direction, latlng: guessedCountryObj.latlng }, ...guesses]);
-    }
+        // OPTION 2 (INCORRECT GUESS): Added cca3 property right here next to latlng
+        setGuesses([{ 
+          name: guessedCountryObj.name.common, 
+          distance: distanceInKm, 
+          direction, 
+          latlng: guessedCountryObj.latlng,
+          cca3: guessedCountryObj.cca3 // <-- ADDED THIS RIGHT HERE
+        }, ...guesses]);
+      }
 
-    // Reset input field
-    setGuess("");
-    setValidGuess(false);
-  };
+      // Reset input field
+      setGuess("");
+      setValidGuess(false);
+    };
 
   // Helper map to turn direction strings into clean directional arrows
   const getArrowEmoji = (dir) => {
@@ -81,8 +94,12 @@ function App() {
       {targetCountry && <CountryOutline countryCode={targetCountry.cca3} />}
 
       {/* Drop the 3D globe right here! Pass it the very first (latest) item in our guesses array */}
-      <GameGlobe latestGuessObj={guesses[0]} />
-
+      <GameGlobe 
+        latestGuessObj={guesses[0]} 
+        guesses={guesses} 
+        targetCountry={targetCountry} // <-- Pass this down!
+      />
+      
       {gameWon && <h2 style={{ color: '#48bb78' }}>🎉 You Found It! The country was {targetCountry?.name?.common}!</h2>}
 
       <form onSubmit={submitGuess} style={{ marginBottom: '30px' }}>
