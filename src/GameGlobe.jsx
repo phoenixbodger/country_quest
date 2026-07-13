@@ -91,12 +91,12 @@ function GameGlobe({ latestGuessObj, guesses = [] }) {
         backgroundColor="rgba(0,0,0,0)"
         showGlobeVolume={true}
         showAtmosphere={true}
-        oceanColor="#3498db" // Set the ocean color to blue
-        landColor="#e2e8f0" // Explicitly set land color to ensure base material initializes correctly
+        // Removed oceanColor and landColor as globeImageUrl will define these
         
         // --- THE PERMANENT BLUE SEA FIX ---
         // We use a clean, reliable, official water texture asset from the library examples
-        // Removed globeImageUrl to allow oceanColor to take effect
+        // Using earth-blue-marble.png for blue oceans and land details
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.png"
         
         // --- Polygon Layers Configuration ---
         polygonsData={polygonData}
