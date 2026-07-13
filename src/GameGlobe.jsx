@@ -95,8 +95,8 @@ function GameGlobe({ latestGuessObj, guesses = [] }) {
         
         // --- THE PERMANENT BLUE SEA FIX ---
         // We use a clean, reliable, official water texture asset from the library examples
-        // Using earth-blue-marble.png for blue oceans and land details
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.png"
+        // Using earth-night.jpg for blue oceans and land details, as earth-blue-marble.png was not found
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
         
         // --- Polygon Layers Configuration ---
         polygonsData={polygonData}
