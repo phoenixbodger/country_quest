@@ -106,6 +106,9 @@ function GameGlobe({ latestGuessObj, guesses = [] }) {
 
         atmosphereColor="#60a5fa"
         atmosphereAltitude={0.12}
+        
+        // --- Add a console log to check atmosphereColor ---
+        onGlobeReady={() => console.log("Atmosphere Color:", atmosphereColor)}
       />
     </div>
   );
