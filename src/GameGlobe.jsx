@@ -15,7 +15,7 @@ function GameGlobe({ latestGuessObj, guesses = [] }) {
       .catch(err => console.error("Error loading world map data:", err));
   }, []);
 
-  console.log("//unpkg.com/three-globe/example/img/earth-water.png");
+  console.log("//unpkg.com/three-globe/example/img/earth-night.jpg");
 
   // Spin camera to focus on the latest guess coordinates
   useEffect(() => {
