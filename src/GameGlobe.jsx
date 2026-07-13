@@ -91,6 +91,7 @@ function GameGlobe({ latestGuessObj, guesses = [] }) {
         backgroundColor="rgba(0,0,0,0)"
         showGlobeVolume={true}
         showAtmosphere={true}
+        oceanColor="#3498db" // Set the ocean color to blue
         
         // --- THE PERMANENT BLUE SEA FIX ---
         // We use a clean, reliable, official water texture asset from the library examples
