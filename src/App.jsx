@@ -95,7 +95,7 @@ function App() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-      <h1>🌍 Worldle Globe Game 🌍</h1>
+      <h1>🌍 Country Quest 🌍</h1>
      
       {/* Display the target country's shape using its 3-letter code */}
       {targetCountry && <CountryOutline countryCode={targetCountry.cca3} />}
