@@ -11,7 +11,7 @@ function CountryOutline({ countryCode }) {
     setError(false);
     // Fetch the specific country's geojson file from public/maps/
     // Force the country code to lowercase to match your filenames!
-    fetch(`/maps/${countryCode.toLowerCase()}.geo.json`)
+    fetch(`${import.meta.env.BASE_URL}maps/${countryCode.toLowerCase()}.geo.json`)
       .then((res) => {
         if (!res.ok) throw new Error("Map file not found");
         return res.json();

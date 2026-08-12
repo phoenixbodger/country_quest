@@ -6,7 +6,7 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
   const [worldPolygons, setWorldPolygons] = useState([]);
 
   useEffect(() => {
-    fetch('/countries-geo.json')
+    fetch(`${import.meta.env.BASE_URL}countries-geo.json`)
       .then(res => res.json())
       .then(data => setWorldPolygons(data.features))
       .catch(err => console.error("Error loading countries data:", err));
@@ -51,7 +51,7 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
         ref={globeRef}
         width={400}
         height={400}
-        globeImageUrl="/earth-day.jpg"
+        globeImageUrl={`${import.meta.env.BASE_URL}earth-day.jpg`}
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
 
         polygonsData={polygonData}

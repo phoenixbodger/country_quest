@@ -16,8 +16,8 @@ function App() {
   // 1. Load countries.json on page load; filter target to valid-geometry countries
   useEffect(() => {
     Promise.all([
-      fetch('/countries.json').then(r => r.json()),
-      fetch('/valid-countries.json').then(r => r.json()),
+      fetch(`${import.meta.env.BASE_URL}countries.json`).then(r => r.json()),
+      fetch(`${import.meta.env.BASE_URL}valid-countries.json`).then(r => r.json()),
     ])
       .then(([allCountries, validCca3]) => {
         const validSet = new Set(validCca3);
