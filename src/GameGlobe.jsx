@@ -1,5 +1,39 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Globe from 'react-globe.gl';
+import { geoArea } from 'd3-geo';
+
+function distinctPointCount(ring) {
+  const seen = new Set();
+  for (const [lng, lat] of ring) seen.add(`${lng},${lat}`);
+  return seen.size;
+}
+
+function isInsideOut(ring) {
+  return geoArea({ type: 'Polygon', coordinates: [ring] }) > 2 * Math.PI;
+}
+
+function cleanRing(ring) {
+  if (distinctPointCount(ring) < 3) return null;
+  return isInsideOut(ring) ? ring.slice().reverse() : ring;
+}
+
+function cleanPolygon(polygon) {
+  const rings = polygon.map(cleanRing).filter(Boolean);
+  return rings.length ? rings : null;
+}
+
+function cleanGeometry(geometry) {
+  if (!geometry) return null;
+  if (geometry.type === 'Polygon') {
+    const rings = cleanPolygon(geometry.coordinates);
+    return rings ? { ...geometry, coordinates: rings } : null;
+  }
+  if (geometry.type === 'MultiPolygon') {
+    const polygons = geometry.coordinates.map(cleanPolygon).filter(Boolean);
+    return polygons.length ? { ...geometry, coordinates: polygons } : null;
+  }
+  return geometry;
+}
 
 function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
   const globeRef = useRef();
@@ -22,6 +56,8 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
     return worldPolygons
       .filter(p => p.geometry && (p.geometry.type === 'Polygon' || p.geometry.type === 'MultiPolygon'))
       .map(polygon => {
+        const geometry = cleanGeometry(polygon.geometry);
+        if (!geometry) return null;
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
         const matchedGuess = guesses.find(g => (g.cca3 || '').toLowerCase() === cca3);
         const isCorrect = matchedGuess && matchedGuess.distance === 0;
@@ -30,11 +66,13 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
         else if (matchedGuess) color = matchedGuess.color;
         return {
           ...polygon,
+          geometry,
           cca3,
           color,
           altitude: 0.01,
         };
-      });
+      })
+      .filter(Boolean);
   }, [worldPolygons, guesses, targetCountry]);
 
   return (
