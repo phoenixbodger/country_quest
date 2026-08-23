@@ -54,7 +54,7 @@ function FindCountryGame({ onHome }) {
   };
 
   const handleGuess = (cca3) => {
-    if (gameWon || tried.includes(cca3)) return;
+    if (gameWon || tried.some(t => t.cca3 === cca3)) return;
     setClickCount(n => n + 1);
 
     if (cca3 === target.properties.cca3) {
@@ -71,8 +71,14 @@ function FindCountryGame({ onHome }) {
       { latitude: tLat, longitude: tLng }
     ) / 1000);
 
-    setTried(prev => [...prev, cca3]);
+    setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, lat: cLat, lng: cLng }]);
     setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target.`);
+  };
+
+  const focusCountry = ({ lat, lng }) => {
+    if (globeRef.current) {
+      globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+    }
   };
 
   const countryIndex = useMemo(() => buildCountryIndex(features), [features]);
@@ -95,7 +101,7 @@ function FindCountryGame({ onHome }) {
       .map(polygon => {
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
         const isTarget = gameWon && target && target.properties.cca3.toLowerCase() === cca3;
-        const isTried = tried.some(t => t.toLowerCase() === cca3);
+        const isTried = tried.some(t => t.cca3.toLowerCase() === cca3);
         let color = 'rgba(0, 0, 0, 0)';
         if (isTarget) color = '#16a34a';
         else if (isTried) color = 'rgba(225, 29, 72, 0.55)';
@@ -186,6 +192,40 @@ function FindCountryGame({ onHome }) {
 
       {lastHint && !gameWon && (
         <div style={{ marginTop: '10px', color: '#f6ad55', fontSize: '16px' }}>{lastHint}</div>
+      )}
+
+      {tried.length > 0 && (
+        <div style={{ marginTop: '16px' }}>
+          <div style={{ fontSize: '15px', color: '#a0aec0', marginBottom: '8px' }}>
+            History — click a guess to centre the globe on it
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+            {[...tried].reverse().map(t => (
+              <button
+                key={t.cca3}
+                onClick={() => focusCountry(t)}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '16px',
+                  width: '100%',
+                  maxWidth: '360px',
+                  padding: '8px 14px',
+                  borderRadius: '6px',
+                  border: '1px solid #4a5568',
+                  background: '#2d3748',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                }}
+              >
+                <span>{t.name}</span>
+                <span style={{ color: '#f6ad55', fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km</span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {gameWon && (
