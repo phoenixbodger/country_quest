@@ -13,6 +13,7 @@ function GlobeExplore({ onHome }) {
   const [selected, setSelected] = useState(null);
   const [autoRotate, setAutoRotate] = useState(true);
   const [showBorders, setShowBorders] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [searchError, setSearchError] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
@@ -53,6 +54,18 @@ function GlobeExplore({ onHome }) {
         };
       });
   }, [worldPolygons, selected]);
+
+  const labelsData = useMemo(() => {
+    if (!showLabels) return [];
+    return worldPolygons
+      .filter(f => f.properties?.name && f.properties?.latlng?.length === 2)
+      .map(f => ({
+        lat: f.properties.latlng[0],
+        lng: f.properties.latlng[1],
+        text: f.properties.name,
+        cca3: f.properties.cca3,
+      }));
+  }, [worldPolygons, showLabels]);
 
   const selectedCountry = selected
     ? countries.find(c => c.cca3 === selected.cca3)
@@ -164,15 +177,26 @@ function GlobeExplore({ onHome }) {
         <div style={{ color: '#feb2b2', fontSize: '14px', marginBottom: '8px' }}>{searchError}</div>
       )}
 
-      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer', marginBottom: '10px' }}>
-        <input
-          type="checkbox"
-          checked={showBorders}
-          onChange={e => setShowBorders(e.target.checked)}
-          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-        />
-        Show borders
-      </label>
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={showBorders}
+            onChange={e => setShowBorders(e.target.checked)}
+            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+          />
+          Show borders
+        </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={showLabels}
+            onChange={e => setShowLabels(e.target.checked)}
+            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+          />
+          Show country names
+        </label>
+      </div>
 
       <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '700px' }}>
         <Globe
@@ -191,6 +215,33 @@ function GlobeExplore({ onHome }) {
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
           onPolygonClick={handlePolygonClick}
           onGlobeClick={handleMissClick}
+
+          htmlElementsData={labelsData}
+          htmlLat="lat"
+          htmlLng="lng"
+          htmlAltitude={0.015}
+          htmlTransitionDuration={300}
+          htmlElement={d => {
+            const el = document.createElement('div');
+            el.style.color = 'rgba(255,255,255,0.95)';
+            el.style.fontSize = '11px';
+            el.style.fontWeight = '700';
+            el.style.whiteSpace = 'nowrap';
+            el.style.pointerEvents = 'auto';
+            el.style.cursor = 'pointer';
+            el.style.userSelect = 'none';
+            // dark outline for legibility on any background
+            el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
+            el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
+            el.textContent = d.text;
+
+            el.addEventListener('click', () => {
+              const feature = worldPolygons.find(f => f.properties?.cca3 === d.cca3);
+              if (feature) handlePolygonClick(feature);
+            });
+
+            return el;
+          }}
 
           enableAutoRotate={autoRotate}
           autoRotateSpeed={0.6}
