@@ -1,178 +1,168 @@
-import React, { useState, useEffect } from 'react';
-import { getDistance, getCompassDirection } from 'geolib';
-import CountryOutline from '../CountryOutline';
-import GameGlobe from '../GameGlobe';
-import { getProximityColor } from '../distanceColors';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import GameShell from '../components/GameShell';
+import GuessCountryFromSilhouette from './CountryQuestModes/GuessCountryFromSilhouette';
+import GuessCapitalForQuest from './CountryQuestModes/GuessCapitalForQuest';
+import { buildCapitalIndex } from '../utils/capitalHelpers';
+
+// Stages for extensibility: silhouette -> capital -> flag (flag to be added next)
+// Current implementation: silhouette -> capital (auto-advance 2s) -> play again
+// Future: add 'flag' stage after capital, ending with flag as final stage.
+const STAGES = {
+  SILHOUETTE: 'silhouette',
+  CAPITAL: 'capital',
+  // FLAG: 'flag', // next game: What is the flag? (GuessFlagForQuest)
+};
 
 function CountryQuest({ onHome }) {
   const [countries, setCountries] = useState([]);
+  const [features, setFeatures] = useState([]);
+  const [worldPolygons, setWorldPolygons] = useState([]);
+  const [validCca3Set, setValidCca3Set] = useState(new Set());
   const [targetCountry, setTargetCountry] = useState(null);
-  const [guess, setGuess] = useState("");
-  const [validGuess, setValidGuess] = useState(false);
-  const [guesses, setGuesses] = useState([]);
-  const [gameWon, setGameWon] = useState(false);
-  const [focusedGuess, setFocusedGuess] = useState(null);
+  const [stage, setStage] = useState(STAGES.SILHOUETTE);
+  const [silhouetteGuessCount, setSilhouetteGuessCount] = useState(0);
+  const timerRef = useRef(null);
 
-  // 1. Load countries.json on page load; filter target to valid-geometry countries
+  const capitalIndex = useMemo(() => {
+    if (!countries.length) return { uniqueCapitals: [], capitalToCountries: new Map(), capitalLowerSet: new Set() };
+    return buildCapitalIndex(countries);
+  }, [countries]);
+
+  const pickRandomTarget = (sorted, validSet) => {
+    const validTargets = sorted.filter(c => validSet.has(c.cca3));
+    if (!validTargets.length) return sorted[Math.floor(Math.random() * sorted.length)];
+    return validTargets[Math.floor(Math.random() * validTargets.length)];
+  };
+
   useEffect(() => {
     Promise.all([
       fetch(`${import.meta.env.BASE_URL}countries.json`).then(r => r.json()),
+      fetch(`${import.meta.env.BASE_URL}countries-geo.json`).then(r => r.json()),
       fetch(`${import.meta.env.BASE_URL}valid-countries.json`).then(r => r.json()),
     ])
-      .then(([allCountries, validCca3]) => {
+      .then(([allCountries, geo, validCca3]) => {
         const validSet = new Set(validCca3);
         const sorted = allCountries.sort((a, b) => a.name.common.localeCompare(b.name.common));
         setCountries(sorted);
-
-        // Pick a random target only from countries with valid polygon geometry
-        const validTargets = sorted.filter(c => validSet.has(c.cca3));
-        const randomTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
+        setValidCca3Set(validSet);
+        const feats = geo.features.filter(f => f.properties?.cca3);
+        setFeatures(feats);
+        setWorldPolygons(geo.features);
+        const randomTarget = pickRandomTarget(sorted, validSet);
         setTargetCountry(randomTarget);
-        console.log("Secret Target Country:", randomTarget.name.common);
+        console.log('Secret Target Country:', randomTarget.name.common);
       })
-      .catch(err => console.error("Error loading countries:", err));
+      .catch(err => console.error('Error loading countries:', err));
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setGuess(value);
-    const isValid = countries.some(c => c.name.common.toLowerCase() === value.toLowerCase());
-    setValidGuess(isValid);
+  const handleNewRound = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (!countries.length || !validCca3Set.size) {
+      setStage(STAGES.SILHOUETTE);
+      setSilhouetteGuessCount(0);
+      return;
+    }
+    const next = pickRandomTarget(countries, validCca3Set);
+    setTargetCountry(next);
+    setStage(STAGES.SILHOUETTE);
+    setSilhouetteGuessCount(0);
+    console.log('Secret Target Country:', next.name.common);
   };
 
-  // 2. The Distance Calculator Loop
-  const submitGuess = (e) => {
-      e.preventDefault();
-      if (!validGuess || gameWon) return;
+  const handleSilhouetteWon = (guessCount) => {
+    setSilhouetteGuessCount(guessCount);
+    // Auto-advance to capital after 2s, keeping silhouette visible in next stage
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setStage(STAGES.CAPITAL);
+      timerRef.current = null;
+    }, 2000);
+  };
 
-      // Find the full country objects for both the guess and the target
-      const guessedCountryObj = countries.find(c => c.name.common.toLowerCase() === guess.toLowerCase());
-      
-       if (guessedCountryObj.name.common === targetCountry.name.common) {
-          setGameWon(true);
-          // OPTION 1 (WINNING GUESS): Added latlng and cca3 here so it centers and colors yellow on a win!
-          setGuesses([{ 
-            name: guessedCountryObj.name.common, 
-            distance: 0, 
-            color: '#22c55e', // Correct = green
-            direction: "🎉",
-            latlng: guessedCountryObj.latlng,
-            cca3: guessedCountryObj.cca3 
-          }, ...guesses]);
-        } else {
-          // Grab coordinates from your JSON (Format in mledoze repo: [lat, lng])
-          const fromCoords = { latitude: guessedCountryObj.latlng[0], longitude: guessedCountryObj.latlng[1] };
-          const toCoords = { latitude: targetCountry.latlng[0], longitude: targetCountry.latlng[1] };
-          
-          // Calculate distance in meters, then convert to kilometers
-          const distanceInMeters = getDistance(fromCoords, toCoords);
-          const distanceInKm = Math.round(distanceInMeters / 1000);
-          
-          // Calculate compass bearing direction (N, NE, S, SW, etc.)
-          const direction = getCompassDirection(fromCoords, toCoords);
-          
-          // OPTION 2 (INCORRECT GUESS): Added cca3 property right here next to latlng
-          setGuesses([{ 
-            name: guessedCountryObj.name.common, 
-            distance: distanceInKm, 
-            color: getProximityColor(distanceInKm), // ← NEW: compute proximity color once
-            direction, 
-            latlng: guessedCountryObj.latlng,
-            cca3: guessedCountryObj.cca3 // <-- ADDED THIS RIGHT HERE
-          }, ...guesses]);
-        }
+  const handleSkipToCapital = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setStage(STAGES.CAPITAL);
+  };
 
-      // Reset input field
-      setGuess("");
-      setValidGuess(false);
+  // Build a feature-like target for silhouette mode (needs properties.cca3/name)
+  // We keep targetCountry as source of truth; silhouette mode can handle both shapes.
+  const silhouetteTarget = useMemo(() => {
+    if (!targetCountry) return null;
+    // try to find matching feature for richer props, but fallback to country object
+    const feat = features.find(f => f.properties.cca3 === targetCountry.cca3);
+    if (feat) return feat;
+    // synthetic feature-like object so GuessCountryFromSilhouette works
+    return {
+      properties: { cca3: targetCountry.cca3, name: targetCountry.name.common, latlng: targetCountry.latlng },
+      cca3: targetCountry.cca3,
     };
-
-  // Helper map to turn direction strings into clean directional arrows
-  const getArrowEmoji = (dir) => {
-    const arrows = { N: "⬆️", NE: "↗️", E: "➡️", SE: "↘️", S: "⬇️", SW: "↙️", W: "⬅️", NW: "↖️" };
-    return arrows[dir] || dir;
-  };
+  }, [targetCountry, features]);
 
   return (
     <GameShell title="🌍 Country Quest" onHome={onHome}>
-      {/* Display the target country's shape using its 3-letter code */}
-      {targetCountry && <CountryOutline countryCode={targetCountry.cca3} />}
-
-      {/* Drop the 3D globe right here! Pass it the very first (latest) item in our guesses array */}
-      <GameGlobe 
-        latestGuessObj={focusedGuess || guesses[0]} 
-        guesses={guesses} 
-        targetCountry={targetCountry}
-      />
-      
-      {gameWon && <h2 style={{ color: '#48bb78' }}>🎉 You Found It! The country was {targetCountry?.name?.common}!</h2>}
-
-      <form onSubmit={submitGuess} style={{ marginBottom: '30px' }}>
-          <input 
-            type="text" 
-            value={guess} 
-            onChange={handleInputChange} 
-            placeholder="Type a country name..."
-            list="country-list"
-            disabled={gameWon}
-            style={{ padding: '10px', width: '250px', borderRadius: '5px', border: 'none', fontSize: '16px' }}
+      {stage === STAGES.SILHOUETTE && silhouetteTarget && (
+        <>
+          <GuessCountryFromSilhouette
+            key={targetCountry?.cca3}
+            countries={countries}
+            features={features}
+            worldPolygons={worldPolygons}
+            target={silhouetteTarget}
+            onWon={handleSilhouetteWon}
           />
+          {/* Optional manual advance button appears after win, before auto-advance */}
+          {/* This is rendered inside GuessCountryFromSilhouette's won state, but we also offer a quick skip here if needed */}
+        </>
+      )}
 
-          <datalist id="country-list">
-            {countries.map((c, idx) => (
-              <option key={idx} value={c.name.common} />
-            ))}
-          </datalist>
+      {stage === STAGES.CAPITAL && targetCountry && (
+        <GuessCapitalForQuest
+          key={`capital-${targetCountry?.cca3}`}
+          targetCountry={targetCountry}
+          capitalIndex={capitalIndex}
+          silhouetteGuessCount={silhouetteGuessCount}
+          onPlayAgain={handleNewRound}
+        />
+      )}
 
-          <button 
-            type="submit" 
-            disabled={!validGuess || gameWon}
-            style={{ 
-              padding: '10px 20px', 
-              marginLeft: '10px', 
-              borderRadius: '5px', 
-              border: 'none',
-              background: validGuess && !gameWon ? '#48bb78' : '#4a5568', 
-              color: 'white',
-              cursor: validGuess && !gameWon ? 'pointer' : 'not-allowed',
-              fontSize: '16px'
+      {/* Future extensibility note:
+          Add STAGES.FLAG and a component GuessFlagForQuest similar to FlagQuestModes/GuessFlagFromCountry.
+          Chain would be: silhouette -> capital -> flag, with flag as final stage.
+          Example:
+          {stage === STAGES.FLAG && targetCountry && (
+            <GuessFlagForQuest targetCountry={targetCountry} countries={countries} onPlayAgain={handleNewRound} />
+          )}
+          onCapitalWon would auto-advance to FLAG instead of ending.
+      */}
+
+      {/* If silhouette won, allow instant skip to capital (accessibility) */}
+      {stage === STAGES.SILHOUETTE && silhouetteGuessCount > 0 && (
+        <div style={{ marginTop: '10px' }}>
+          <button
+            onClick={handleSkipToCapital}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '6px',
+              border: '1px solid #4a5568',
+              background: '#2d3748',
+              color: '#63b3ed',
+              cursor: 'pointer',
+              fontSize: '13px',
             }}
           >
-            Guess
+            Continue to capital now →
           </button>
-        </form>
-
-        {/* 3. The Clue Feedback UI Display */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {guesses.map((g, idx) => {
-            const isFocused = focusedGuess === g;
-            return (
-              <div
-                key={idx}
-                onClick={() => setFocusedGuess(isFocused ? null : g)}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  background: isFocused
-                    ? g.distance === 0 ? '#276749' : '#1a202c'
-                    : g.distance === 0 ? '#2f855a' : '#2d3748',
-                  padding: '12px 20px',
-                  borderRadius: '6px',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  outline: isFocused ? '2px solid #63b3ed' : 'none',
-                  transition: 'background 0.2s, outline 0.2s'
-                }}
-              >
-                <span>{g.name}</span>
-                <span>{g.distance === 0 ? "Correct!" : `${g.distance.toLocaleString()} km`}</span>
-                <span>{getArrowEmoji(g.direction)}</span>
-              </div>
-            );
-          })}
         </div>
+      )}
     </GameShell>
   );
 }
