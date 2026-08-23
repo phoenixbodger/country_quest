@@ -21,10 +21,12 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
   const [flagError, setFlagError] = useState(false);
+  const [triedFlagErrors, setTriedFlagErrors] = useState(new Set());
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
     setFlagError(false);
+    setTriedFlagErrors(new Set());
   }, [target]);
 
   useEffect(() => {
@@ -53,6 +55,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
     setHintTried(new Set());
     setGuessValue('');
     setFlagError(false);
+    setTriedFlagErrors(new Set());
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
     }
@@ -62,6 +65,8 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
     const arrows = { N: '⬆️', NE: '↗️', E: '➡️', SE: '↘️', S: '⬇️', SW: '↙️', W: '⬅️', NW: '↖️' };
     return arrows[dir] || dir;
   };
+
+  const getFlagEmoji = (cca3) => countries.find(c => c.cca3 === cca3)?.flag;
 
   const handleGuessByCca3 = (cca3) => {
     if (gameWon || tried.some(t => t.cca3 === cca3)) return;
@@ -392,7 +397,23 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
                   fontSize: '15px',
                 }}
               >
-                <span>{t.name}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {triedFlagErrors.has(t.cca3) ? (
+                    <span style={{ fontSize: '24px', lineHeight: 1 }}>{getFlagEmoji(t.cca3)}</span>
+                  ) : (
+                    <img
+                      src={`${import.meta.env.BASE_URL}maps/${t.cca3.toLowerCase()}.svg`}
+                      alt={`Flag of ${t.name}`}
+                      onError={() => setTriedFlagErrors(prev => {
+                        const ns = new Set(prev);
+                        ns.add(t.cca3);
+                        return ns;
+                      })}
+                      style={{ width: '40px', height: '27px', objectFit: 'contain', borderRadius: '3px', flexShrink: 0 }}
+                    />
+                  )}
+                  {t.name}
+                </span>
                 <span style={{ color: '#f6ad55', fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
               </button>
             ))}
