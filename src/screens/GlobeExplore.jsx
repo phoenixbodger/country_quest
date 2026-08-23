@@ -13,6 +13,8 @@ function GlobeExplore({ onHome }) {
   const [selected, setSelected] = useState(null);
   const [autoRotate, setAutoRotate] = useState(true);
   const [showBorders, setShowBorders] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchError, setSearchError] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
@@ -60,16 +62,51 @@ function GlobeExplore({ onHome }) {
     const cca3 = polygon.properties?.cca3;
     if (!cca3) return;
     setSelected({ cca3, name: polygon.properties?.name });
+    setSearchError(null);
     setAutoRotate(false);
     const [lat, lng] = polygon.properties?.latlng || [0, 0];
-    globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+    globeRef.current?.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
   };
 
   const resetView = () => {
     setSelected(null);
+    setSearchInput("");
+    setSearchError(null);
     setAutoRotate(true);
-    globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
+    globeRef.current?.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
   };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const raw = searchInput.trim();
+    if (!raw) return;
+    const lower = raw.toLowerCase();
+    const match = countries.find(c =>
+      c.name.common.toLowerCase() === lower ||
+      c.altSpellings?.some(a => a.toLowerCase() === lower) ||
+      c.name.official?.toLowerCase() === lower
+    );
+    if (!match) {
+      setSearchError(`"${raw}" not found — check spelling or pick from suggestions.`);
+      return;
+    }
+    setSearchError(null);
+    setSelected({ cca3: match.cca3, name: match.name.common });
+    setAutoRotate(false);
+    // Prefer geo feature latlng (matches polygon centroid) then fallback to countries.json latlng
+    const feature = worldPolygons.find(f => f.properties?.cca3 === match.cca3);
+    const latlng = feature?.properties?.latlng || match.latlng;
+    if (latlng && latlng.length === 2 && globeRef.current) {
+      const [lat, lng] = latlng;
+      globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+    }
+  };
+
+  const isValidSearch = countries.some(c =>
+    c.name.common.toLowerCase() === searchInput.trim().toLowerCase() ||
+    c.altSpellings?.some(a => a.toLowerCase() === searchInput.trim().toLowerCase()) ||
+    c.name.official?.toLowerCase() === searchInput.trim().toLowerCase()
+  );
 
   const countryIndex = useMemo(() => buildCountryIndex(worldPolygons), [worldPolygons]);
 
@@ -91,6 +128,41 @@ function GlobeExplore({ onHome }) {
         Rotate and zoom freely. Hover a country to see its name, click to focus on it.
         Scroll to zoom in — small islands get bigger and easier to click.
       </p>
+
+      <form onSubmit={handleSearchSubmit} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', margin: '14px 0 8px', flexWrap: 'wrap' }}>
+        <input
+          type="text"
+          value={searchInput}
+          onChange={e => { setSearchInput(e.target.value); if (searchError) setSearchError(null); }}
+          placeholder="Type a country name..."
+          list="globe-country-list"
+          style={{ padding: '10px 12px', width: '260px', borderRadius: '6px', border: searchError ? '2px solid #fc8181' : 'none', fontSize: '16px', outline: 'none' }}
+        />
+        <datalist id="globe-country-list">
+          {countries.map(c => (
+            <option key={c.cca3} value={c.name.common} />
+          ))}
+        </datalist>
+        <button
+          type="submit"
+          disabled={!isValidSearch}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '6px',
+            border: 'none',
+            background: isValidSearch ? '#48bb78' : '#4a5568',
+            color: 'white',
+            cursor: isValidSearch ? 'pointer' : 'not-allowed',
+            fontSize: '16px',
+            fontWeight: 'bold',
+          }}
+        >
+          Search
+        </button>
+      </form>
+      {searchError && (
+        <div style={{ color: '#feb2b2', fontSize: '14px', marginBottom: '8px' }}>{searchError}</div>
+      )}
 
       <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer', marginBottom: '10px' }}>
         <input
@@ -131,19 +203,32 @@ function GlobeExplore({ onHome }) {
       {selectedCountry && (
         <div style={{
           display: 'inline-block',
+          textAlign: 'left',
           background: '#2d3748',
-          padding: '12px 24px',
-          borderRadius: '10px',
-          marginTop: '10px',
-          fontSize: '18px',
-          fontWeight: 'bold',
+          padding: '16px 20px',
+          borderRadius: '12px',
+          marginTop: '12px',
+          minWidth: '280px',
+          maxWidth: '520px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+          border: '1px solid #4a5568',
         }}>
-          {selectedCountry.flag} {selectedCountry.name.common}
-          {selectedCountry.capital?.[0] && (
-            <span style={{ color: '#a0aec0', fontWeight: 'normal' }}>
-              {' '}— Capital: {selectedCountry.capital[0]}
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{ fontSize: '36px', lineHeight: 1 }}>{selectedCountry.flag}</span>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>{selectedCountry.name.common}</div>
+              <div style={{ fontSize: '13px', color: '#a0aec0' }}>{selectedCountry.name.official}</div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: '14px', textAlign: 'left' }}>
+            <div><span style={{ color: '#a0aec0' }}>Capital:</span> <span style={{ color: 'white', fontWeight: 600 }}>{selectedCountry.capital?.join(', ') || '—'}</span></div>
+            <div><span style={{ color: '#a0aec0' }}>Region:</span> <span style={{ color: 'white' }}>{selectedCountry.region || '—'}{selectedCountry.subregion ? ` · ${selectedCountry.subregion}` : ''}</span></div>
+            <div><span style={{ color: '#a0aec0' }}>Area:</span> <span style={{ color: 'white' }}>{selectedCountry.area ? `${selectedCountry.area.toLocaleString()} km²` : '—'}</span></div>
+            <div><span style={{ color: '#a0aec0' }}>Landlocked:</span> <span style={{ color: 'white' }}>{selectedCountry.landlocked ? 'Yes' : 'No'}</span></div>
+            <div style={{ gridColumn: '1 / -1' }}><span style={{ color: '#a0aec0' }}>Languages:</span> <span style={{ color: 'white' }}>{selectedCountry.languages ? Object.values(selectedCountry.languages).join(', ') : '—'}</span></div>
+            <div style={{ gridColumn: '1 / -1' }}><span style={{ color: '#a0aec0' }}>Borders:</span> <span style={{ color: 'white' }}>{selectedCountry.borders?.length ? `${selectedCountry.borders.length} — ${selectedCountry.borders.join(', ')}` : 'None (island)'}</span></div>
+            <div style={{ gridColumn: '1 / -1', color: '#718096', fontSize: '12px', marginTop: '2px' }}>{selectedCountry.cca3} · {selectedCountry.cca2} · {selectedCountry.latlng ? `${selectedCountry.latlng[0].toFixed(1)}°, ${selectedCountry.latlng[1].toFixed(1)}°` : ''}</div>
+          </div>
         </div>
       )}
 
