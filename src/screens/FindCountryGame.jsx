@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { getDistance } from 'geolib';
 import Globe from 'react-globe.gl';
 import GameShell from '../components/GameShell';
+import { buildCountryIndex, findNearestCountry } from '../nearestCountry';
+import { useBorderedEarthTexture } from '../useBorderedEarthTexture';
 
 function FindCountryGame({ onHome }) {
   const globeRef = useRef();
@@ -14,6 +16,9 @@ function FindCountryGame({ onHome }) {
   const [clickCount, setClickCount] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [lastHint, setLastHint] = useState(null);
+  const [showBorders, setShowBorders] = useState(false);
+  const [showNames, setShowNames] = useState(true);
+  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -70,6 +75,20 @@ function FindCountryGame({ onHome }) {
     setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target.`);
   };
 
+  const countryIndex = useMemo(() => buildCountryIndex(features), [features]);
+
+  // Fallback for clicks that miss a country's mesh (e.g. tiny islands):
+  // snap to the nearest country within a zoom-adaptive tolerance.
+  const handleMissClick = ({ lat, lng }) => {
+    if (gameWon) return;
+    const altitude = globeRef.current?.pointOfView()?.altitude ?? 2.5;
+    const toleranceKm = Math.min(600, Math.max(20, altitude * 200));
+    const nearest = findNearestCountry(countryIndex, lat, lng);
+    if (nearest && nearest.distanceKm <= toleranceKm) {
+      handleGuess(nearest.cca3);
+    }
+  };
+
   const polygonData = useMemo(() => {
     return worldPolygons
       .filter(p => p.geometry && (p.geometry.type === 'Polygon' || p.geometry.type === 'MultiPolygon'))
@@ -101,8 +120,32 @@ function FindCountryGame({ onHome }) {
       )}
 
       <p style={{ color: '#a0aec0', marginBottom: '10px' }}>
-        Rotate the globe and click the country you think is the target. Hover to see a country's name.
+        Rotate the globe and click the country you think is the target.
+        {showNames
+          ? " Hover to see a country's name."
+          : " Country names are hidden — tick “Show country names” to reveal them on hover."}
+        Scroll to zoom in — small islands get bigger and easier to click.
       </p>
+
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer', marginRight: '16px' }}>
+        <input
+          type="checkbox"
+          checked={showBorders}
+          onChange={e => setShowBorders(e.target.checked)}
+          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+        />
+        Show borders
+      </label>
+
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer', marginBottom: '10px' }}>
+        <input
+          type="checkbox"
+          checked={showNames}
+          onChange={e => setShowNames(e.target.checked)}
+          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+        />
+        Show country names
+      </label>
 
       <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px' }}>
         <Globe
@@ -110,16 +153,17 @@ function FindCountryGame({ onHome }) {
           width={globeSize}
           height={globeSize}
           backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-          globeImageUrl={`${import.meta.env.BASE_URL}earth-day.jpg`}
+          globeImageUrl={showBorders && borderedGlobeUrl ? borderedGlobeUrl : `${import.meta.env.BASE_URL}earth-day.jpg`}
           polygonsData={polygonData}
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor="rgba(255, 255, 255, 0.55)"
+          polygonStrokeColor={showBorders ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0)"}
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={300}
-          polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
+          polygonLabel={showNames ? (p => `<b>${p.properties?.name || ''}</b>`) : null}
           onPolygonClick={p => handleGuess(p.properties?.cca3)}
+          onGlobeClick={handleMissClick}
 
           enableAutoRotate={false}
 

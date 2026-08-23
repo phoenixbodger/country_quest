@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Globe from 'react-globe.gl';
 import GameShell from '../components/GameShell';
+import { buildCountryIndex, findNearestCountry } from '../nearestCountry';
+import { useBorderedEarthTexture } from '../useBorderedEarthTexture';
 
 function GlobeExplore({ onHome }) {
   const globeRef = useRef();
@@ -10,6 +12,8 @@ function GlobeExplore({ onHome }) {
   const [countries, setCountries] = useState([]);
   const [selected, setSelected] = useState(null);
   const [autoRotate, setAutoRotate] = useState(true);
+  const [showBorders, setShowBorders] = useState(false);
+  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -67,28 +71,54 @@ function GlobeExplore({ onHome }) {
     globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
   };
 
+  const countryIndex = useMemo(() => buildCountryIndex(worldPolygons), [worldPolygons]);
+
+  // Fallback for clicks that miss a country's mesh (e.g. tiny islands):
+  // snap to the nearest country within a zoom-adaptive tolerance.
+  const handleMissClick = ({ lat, lng }) => {
+    const altitude = globeRef.current?.pointOfView()?.altitude ?? 2.5;
+    const toleranceKm = Math.min(600, Math.max(20, altitude * 200));
+    const nearest = findNearestCountry(countryIndex, lat, lng);
+    if (nearest && nearest.distanceKm <= toleranceKm) {
+      const feature = worldPolygons.find(f => f.properties?.cca3 === nearest.cca3);
+      if (feature) handlePolygonClick(feature);
+    }
+  };
+
   return (
     <GameShell title="🌐 Globe" onHome={onHome}>
       <p style={{ color: '#a0aec0', marginBottom: '10px' }}>
         Rotate and zoom freely. Hover a country to see its name, click to focus on it.
+        Scroll to zoom in — small islands get bigger and easier to click.
       </p>
+
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer', marginBottom: '10px' }}>
+        <input
+          type="checkbox"
+          checked={showBorders}
+          onChange={e => setShowBorders(e.target.checked)}
+          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+        />
+        Show borders
+      </label>
 
       <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '700px' }}>
         <Globe
           ref={globeRef}
           width={globeSize}
           height={Math.round(globeSize * 0.7)}
-          globeImageUrl={`${import.meta.env.BASE_URL}earth-day.jpg`}
+          globeImageUrl={showBorders && borderedGlobeUrl ? borderedGlobeUrl : `${import.meta.env.BASE_URL}earth-day.jpg`}
           backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
 
           polygonsData={polygonData}
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor="rgba(255, 255, 255, 0.55)"
+          polygonStrokeColor={showBorders ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0)"}
           polygonsTransitionDuration={300}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
           onPolygonClick={handlePolygonClick}
+          onGlobeClick={handleMissClick}
 
           enableAutoRotate={autoRotate}
           autoRotateSpeed={0.6}
