@@ -47,8 +47,8 @@ export function useBorderedEarthTexture(worldPolygons) {
       features.forEach((f) => path(f));
       ctx.stroke();
 
-      // Bright white border on top
-      ctx.strokeStyle = '#ffffff';
+      // Bright red border on top
+      ctx.strokeStyle = '#ff0000';
       ctx.lineWidth = 3;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
