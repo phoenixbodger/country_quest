@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { getDistance } from 'geolib';
+import { getDistance, getCompassDirection } from 'geolib';
 import Globe from 'react-globe.gl';
 import GameShell from '../components/GameShell';
 import { buildCountryIndex, findNearestCountry } from '../nearestCountry';
@@ -70,9 +70,13 @@ function FindCountryGame({ onHome }) {
       { latitude: cLat, longitude: cLng },
       { latitude: tLat, longitude: tLng }
     ) / 1000);
+    const direction = getCompassDirection(
+      { latitude: cLat, longitude: cLng },
+      { latitude: tLat, longitude: tLng }
+    );
 
-    setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, lat: cLat, lng: cLng }]);
-    setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target.`);
+    setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng }]);
+    setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
   };
 
   const focusCountry = ({ lat, lng }) => {
@@ -113,6 +117,11 @@ function FindCountryGame({ onHome }) {
         };
       });
   }, [worldPolygons, tried, gameWon, target]);
+
+  const getArrowEmoji = (dir) => {
+    const arrows = { N: "⬆️", NE: "↗️", E: "➡️", SE: "↘️", S: "⬇️", SW: "↙️", W: "⬅️", NW: "↖️" };
+    return arrows[dir] || dir;
+  };
 
   return (
     <GameShell title="🔍 Find Country Game" onHome={onHome}>
@@ -221,7 +230,7 @@ function FindCountryGame({ onHome }) {
                 }}
               >
                 <span>{t.name}</span>
-                <span style={{ color: '#f6ad55', fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km</span>
+                <span style={{ color: '#f6ad55', fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
               </button>
             ))}
           </div>
