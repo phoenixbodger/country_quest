@@ -117,7 +117,7 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
                   ns.add(hintReveal.correct.cca3);
                   return ns;
                 })}
-                style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '6px', border: '2px solid #48bb78' }}
+                style={{ width: '180px', height: '120px', objectFit: 'contain', borderRadius: '6px', border: '2px solid #48bb78' }}
               />
             )}
           </div>
@@ -150,7 +150,7 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
                       ns.add(o.cca3);
                       return ns;
                     })}
-                    style={{ width: '90px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+                    style={{ width: '90px', height: '60px', objectFit: 'contain', borderRadius: '4px' }}
                   />
                 )}
                 <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{o.name}</span>
@@ -205,7 +205,7 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
                       ns.add(opt.cca3);
                       return ns;
                     })}
-                    style={{ width: '120px', height: '80px', objectFit: 'cover', borderRadius: '4px', display: 'block' }}
+                    style={{ width: '120px', height: '80px', objectFit: 'contain', borderRadius: '4px', display: 'block' }}
                   />
                 )}
                 {isTried && (

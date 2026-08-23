@@ -214,7 +214,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
               src={`${import.meta.env.BASE_URL}maps/${target.properties.cca3.toLowerCase()}.svg`}
               alt={`Flag of ${target.properties.name}`}
               onError={() => setFlagError(true)}
-              style={{ width: '300px', height: '200px', objectFit: 'cover', borderRadius: '6px' }}
+              style={{ width: '300px', height: '200px', objectFit: 'contain', borderRadius: '6px' }}
             />
           )}
         </div>
