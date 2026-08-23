@@ -15,12 +15,13 @@ function HintChoices({ options, correct, triedSet, onPick, disabled }) {
     return optKey === corKey;
   };
 
+  const colCount = options.length > 4 ? 3 : 2;
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
+      gridTemplateColumns: `repeat(${colCount}, 1fr)`,
       gap: '10px',
-      maxWidth: '420px',
+      maxWidth: options.length > 4 ? '520px' : '420px',
       margin: '12px auto',
     }}>
       {options.map((opt, idx) => {
