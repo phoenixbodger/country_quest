@@ -3,6 +3,7 @@ import Globe from 'react-globe.gl';
 import GameShell from '../components/GameShell';
 import { buildCountryIndex, findNearestCountry } from '../nearestCountry';
 import { useBorderedEarthTexture } from '../useBorderedEarthTexture';
+import CountryOutlineThumb from '../components/CountryOutlineThumb';
 
 function GlobeExplore({ onHome }) {
   const globeRef = useRef();
@@ -70,6 +71,11 @@ function GlobeExplore({ onHome }) {
   const selectedCountry = selected
     ? countries.find(c => c.cca3 === selected.cca3)
     : null;
+
+  const selectedFeature = useMemo(() => {
+    if (!selected?.cca3) return null;
+    return worldPolygons.find(f => f.properties?.cca3 === selected.cca3) || null;
+  }, [worldPolygons, selected]);
 
   const handlePolygonClick = (polygon) => {
     const cca3 = polygon.properties?.cca3;
@@ -270,6 +276,7 @@ function GlobeExplore({ onHome }) {
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>{selectedCountry.name.common}</div>
               <div style={{ fontSize: '13px', color: '#a0aec0' }}>{selectedCountry.name.official}</div>
             </div>
+            {selectedFeature && <CountryOutlineThumb feature={selectedFeature} size={60} />}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: '14px', textAlign: 'left' }}>
             <div><span style={{ color: '#a0aec0' }}>Capital:</span> <span style={{ color: 'white', fontWeight: 600 }}>{selectedCountry.capital?.join(', ') || '—'}</span></div>
