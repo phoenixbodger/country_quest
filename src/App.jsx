@@ -5,6 +5,7 @@ import FindCountryGame from './screens/FindCountryGame';
 import FlagQuest from './screens/FlagQuest';
 import CapitalQuest from './screens/CapitalQuest';
 import GlobeExplore from './screens/GlobeExplore';
+import HowToPlay from './screens/HowToPlay';
 
 function App() {
   const [screen, setScreen] = useState('home');
@@ -22,6 +23,8 @@ function App() {
       return <CapitalQuest onHome={goHome} />;
     case 'globe':
       return <GlobeExplore onHome={goHome} />;
+    case 'howtoplay':
+      return <HowToPlay onHome={goHome} onSelect={setScreen} />;
     default:
       return <HomeScreen onSelect={setScreen} />;
   }
