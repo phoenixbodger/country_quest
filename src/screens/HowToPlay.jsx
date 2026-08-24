@@ -13,7 +13,7 @@ const SECTIONS = [
     steps: [
       'Stage 1 — Silhouette: We show the country outline. Type the name or click the globe to fill the guess box, then press Guess.',
       'Wrong guesses show distance + compass direction (e.g. “Brazil is 3,210 km away ↗️”) and a proximity color. History entries are color-coded by proximity — click one to centre the globe on that guess.',
-      'Use the 3D globe: rotate, scroll to zoom (small islands get bigger), toggle “Show borders” / “Show country names” so islands are easier to find.',
+      'Use the 3D globe: rotate, scroll to zoom (small islands get bigger), toggle “Show borders” / “Show All Countries” so islands are easier to find.',
       'Need help? Press 💡 Hint (4 choices) for a multiple-choice pick. You auto-advance to capital after 2 seconds when you win (or press “Continue to capital now”).',
       'Stage 2 — Capital: Type the capital of that same country. We validate only real capitals; wrong guesses show “Paris — capital of France”. Multi-capital countries require all capitals.',
       'Stage 3 — Flag: Pick the correct flag from 6 choices. Wrong flags are disabled with ✗ so you can learn. Finishes with total guess count across all 3 stages.',
@@ -75,7 +75,7 @@ const SECTIONS = [
       'Spin, drag to rotate, scroll to zoom. Hover any country to see its name.',
       'Click a country to focus on it and see a detail card: flag, official name, capital, region, area, landlocked, languages, borders, and a mini outline.',
       'Use Search: type a country name (with autocomplete) and press Search to fly to it.',
-      'Toggles: “Show borders” paints country borders on the earth texture; “Show country names” adds persistent labels on the globe.',
+      'Toggles: “Show borders” paints country borders on the earth texture; “Show All Countries” adds persistent labels on the globe.',
       'Use this to study before you quiz — then jump into any game.',
     ],
   },

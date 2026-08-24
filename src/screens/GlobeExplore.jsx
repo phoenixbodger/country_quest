@@ -200,7 +200,7 @@ function GlobeExplore({ onHome }) {
             onChange={e => setShowLabels(e.target.checked)}
             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
           />
-          Show country names
+          Show All Countries
         </label>
       </div>
 

@@ -6,7 +6,25 @@ import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 
-function GuessCountryFromFlag({ countries, features, worldPolygons, target, setTarget }) {
+function GuessCountryFromFlag({
+  countries,
+  features,
+  worldPolygons,
+  target,
+  setTarget,
+  // session props
+  sessionActive = false,
+  sessionGuessCount = 0,
+  sessionMaxGuesses = null,
+  sessionHintUsed = false,
+  onSessionHintUsed = null,
+  onSessionGuess = null, // (cca3, isCorrect) => void
+  onSessionWin = null, // (guessCountAfter, hintUsed) => void
+  sessionRoundOver = false,
+  sessionFailed = false,
+  sessionFailReason = null,
+  sessionRoundKey = 0,
+}) {
   const globeRef = useRef();
   const containerRef = useRef();
   const [globeSize, setGlobeSize] = useState(400);
@@ -28,6 +46,25 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
     setFlagError(false);
     setTriedFlagErrors(new Set());
   }, [target]);
+
+  // Reset per-round state when target changes or session round key changes
+  useEffect(() => {
+    if (sessionActive) {
+      setTried([]);
+      setGuessCount(0);
+      setGameWon(false);
+      setLastHint(null);
+      setShowHint(false);
+      setHintOptions([]);
+      setHintTried(new Set());
+      setGuessValue('');
+      setFlagError(false);
+      setTriedFlagErrors(new Set());
+      if (globeRef.current) {
+        globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
+      }
+    }
+  }, [sessionActive, sessionRoundKey, target?.properties?.cca3]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -68,7 +105,43 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
 
   const getFlagEmoji = (cca3) => countries.find(c => c.cca3 === cca3)?.flag;
 
+  const effectiveGameWon = sessionActive ? sessionRoundOver && !sessionFailed : gameWon;
+  const effectiveFailed = sessionActive ? sessionFailed : false;
+  const effectiveGuesses = sessionActive ? sessionGuessCount : guessCount;
+  const isInputDisabled = sessionActive ? sessionRoundOver : gameWon;
+  const guessesExhausted = sessionActive && sessionMaxGuesses != null && sessionGuessCount >= sessionMaxGuesses;
+
   const handleGuessByCca3 = (cca3) => {
+    if (sessionActive) {
+      if (sessionRoundOver || tried.some(t => t.cca3 === cca3)) return;
+      if (guessesExhausted) return;
+      const isCorrect = cca3 === target.properties.cca3;
+      if (isCorrect) {
+        if (onSessionWin) onSessionWin(sessionHintUsed);
+        setLastHint(null);
+        setShowHint(false);
+        return;
+      }
+      // wrong guess
+      const clicked = features.find(f => f.properties.cca3 === cca3);
+      const targetCountry = countries.find(c => c.cca3 === target.properties.cca3);
+      const clickedCountry = countries.find(c => c.cca3 === cca3);
+      const [tLat, tLng] = targetCountry?.latlng || target.properties.latlng;
+      const [cLat, cLng] = clickedCountry?.latlng || clicked.properties.latlng;
+      const distanceKm = Math.round(getDistance(
+        { latitude: cLat, longitude: cLng },
+        { latitude: tLat, longitude: tLng }
+      ) / 1000);
+      const direction = getCompassDirection(
+        { latitude: cLat, longitude: cLng },
+        { latitude: tLat, longitude: tLng }
+      );
+      setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng }]);
+      setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
+      if (onSessionGuess) onSessionGuess(cca3, false);
+      return;
+    }
+    // non-session mode (original)
     if (gameWon || tried.some(t => t.cca3 === cca3)) return;
     setGuessCount(n => n + 1);
     if (cca3 === target.properties.cca3) {
@@ -95,7 +168,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
   };
 
   const handleSubmitCountry = (country) => {
-    if (gameWon) return;
+    if (sessionActive ? sessionRoundOver : gameWon) return;
     handleGuessByCca3(country.cca3);
     setGuessValue('');
   };
@@ -116,6 +189,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
   };
 
   const handlePolygonClick = (polygon) => {
+    if (sessionActive && sessionRoundOver) return;
     const cca3 = polygon.properties?.cca3;
     if (!cca3) return;
     const feat = features.find(f => f.properties.cca3 === cca3);
@@ -124,7 +198,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
   };
 
   const handleMissClick = ({ lat, lng }) => {
-    if (gameWon) return;
+    if (sessionActive ? sessionRoundOver : gameWon) return;
     const altitude = globeRef.current?.pointOfView()?.altitude ?? 2.5;
     const toleranceKm = Math.min(600, Math.max(20, altitude * 200));
     const nearest = findNearestCountry(countryIndex, lat, lng);
@@ -151,7 +225,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
       .filter(p => p.geometry && (p.geometry.type === 'Polygon' || p.geometry.type === 'MultiPolygon'))
       .map(polygon => {
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
-        const isTarget = gameWon && target && target.properties.cca3.toLowerCase() === cca3;
+        const isTarget = (sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && target && target.properties.cca3.toLowerCase() === cca3;
         const isTried = tried.some(t => t.cca3.toLowerCase() === cca3);
         let color = 'rgba(0, 0, 0, 0)';
         if (isTarget) color = '#16a34a';
@@ -163,10 +237,11 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
           altitude: isTarget ? 0.03 : isTried ? 0.02 : 0.01,
         };
       });
-  }, [worldPolygons, tried, gameWon, target]);
+  }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed]);
 
   const openHint = () => {
     if (!target) return;
+    if (sessionActive && onSessionHintUsed && !sessionHintUsed) onSessionHintUsed();
     // Build 6 options: 1 correct + 5 random
     const correctCca3 = target.properties.cca3;
     const correct = { cca3: correctCca3, name: target.properties.name };
@@ -181,6 +256,24 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
 
   const handleHintPick = (opt) => {
     const cca3 = opt.cca3;
+    if (sessionActive) {
+      if (hintTried.has(cca3) || sessionRoundOver) return;
+      if (guessesExhausted) return;
+      if (cca3 === target.properties.cca3) {
+        if (onSessionHintUsed && !sessionHintUsed) onSessionHintUsed();
+        if (onSessionWin) onSessionWin(true);
+        setShowHint(false);
+        setLastHint(null);
+      } else {
+        handleGuessByCca3(cca3);
+        setHintTried(prev => {
+          const ns = new Set(prev);
+          ns.add(cca3);
+          return ns;
+        });
+      }
+      return;
+    }
     if (hintTried.has(cca3) || gameWon) return;
     if (cca3 === target.properties.cca3) {
       setGuessCount(n => n + 1);
@@ -239,7 +332,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
         </label>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
           <input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-          Show country names
+          Show All Countries
         </label>
       </div>
 
@@ -296,7 +389,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
           onChange={e => setGuessValue(e.target.value)}
           placeholder="Type a country name or click globe..."
           list="country-list-guesscountryflag"
-          disabled={gameWon}
+          disabled={isInputDisabled || guessesExhausted}
           style={{ padding: '10px', width: '250px', borderRadius: '5px', border: 'none', fontSize: '16px' }}
         />
         <datalist id="country-list-guesscountryflag">
@@ -306,15 +399,15 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
         </datalist>
         <button
           type="submit"
-          disabled={gameWon || !countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase())}
+          disabled={isInputDisabled || guessesExhausted || !countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase())}
           style={{
             padding: '10px 20px',
             marginLeft: '10px',
             borderRadius: '5px',
             border: 'none',
-            background: !gameWon && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? '#48bb78' : '#4a5568',
+            background: !isInputDisabled && !guessesExhausted && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? '#48bb78' : '#4a5568',
             color: 'white',
-            cursor: !gameWon && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? 'pointer' : 'not-allowed',
+            cursor: !isInputDisabled && !guessesExhausted && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? 'pointer' : 'not-allowed',
             fontSize: '16px',
           }}
         >
@@ -322,7 +415,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
         </button>
       </form>
 
-      {!gameWon && !showHint && (
+      {!sessionActive && !gameWon && !showHint && (
         <button
           onClick={openHint}
           style={{
@@ -340,7 +433,25 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
           💡 Hint (6 choices)
         </button>
       )}
-      {showHint && !gameWon && (
+      {sessionActive && !sessionRoundOver && !showHint && !guessesExhausted && (
+        <button
+          onClick={openHint}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: '1px solid #4a5568',
+            background: '#2d3748',
+            color: '#63b3ed',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            marginBottom: '12px',
+          }}
+        >
+          💡 Hint (6 choices)
+        </button>
+      )}
+      {showHint && !(sessionActive ? sessionRoundOver : gameWon) && (
         <div style={{ marginBottom: '16px' }}>
           <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '6px' }}>Pick the country for this flag:</div>
           <HintChoices
@@ -348,7 +459,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
             correct={target.properties.cca3}
             triedSet={hintTried}
             onPick={handleHintPick}
-            disabled={gameWon}
+            disabled={sessionActive ? sessionRoundOver || guessesExhausted : gameWon}
           />
           <button
             onClick={() => setShowHint(false)}
@@ -360,14 +471,29 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
       )}
 
       <div style={{ marginTop: '16px', fontSize: '18px', fontWeight: 'bold' }}>
-        {gameWon ? (
-          <span style={{ color: '#48bb78' }}>🎉 Correct! It was {target.properties.name} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!</span>
+        {sessionActive ? (
+          sessionRoundOver ? (
+            sessionFailed ? (
+              <span style={{ color: '#fc8181' }}>❌ {sessionFailReason || 'Incorrect'} The answer was {target.properties.name} {targetCountryObj?.flag || ''}</span>
+            ) : (
+              <span style={{ color: '#48bb78' }}>🎉 Correct! It was {target.properties.name} ({effectiveGuesses} {effectiveGuesses === 1 ? 'guess' : 'guesses'}){sessionHintUsed ? ' — hint used' : ''}!</span>
+            )
+          ) : (
+            <span style={{ color: '#a0aec0' }}>Guesses: {effectiveGuesses}{sessionMaxGuesses != null ? ` / ${sessionMaxGuesses}` : ''}{sessionHintUsed ? ' • hint used' : ''}</span>
+          )
         ) : (
-          <span style={{ color: '#a0aec0' }}>Guesses: {guessCount}</span>
+          gameWon ? (
+            <span style={{ color: '#48bb78' }}>🎉 Correct! It was {target.properties.name} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!</span>
+          ) : (
+            <span style={{ color: '#a0aec0' }}>Guesses: {guessCount}</span>
+          )
         )}
       </div>
 
-      {lastHint && !gameWon && (
+      {!sessionActive && lastHint && !gameWon && (
+        <div style={{ marginTop: '10px', color: '#f6ad55', fontSize: '16px' }}>{lastHint}</div>
+      )}
+      {sessionActive && lastHint && !sessionRoundOver && (
         <div style={{ marginTop: '10px', color: '#f6ad55', fontSize: '16px' }}>{lastHint}</div>
       )}
 
@@ -421,7 +547,7 @@ function GuessCountryFromFlag({ countries, features, worldPolygons, target, setT
         </div>
       )}
 
-      {gameWon && (
+      {!sessionActive && gameWon && (
         <button
           onClick={newGame}
           style={{

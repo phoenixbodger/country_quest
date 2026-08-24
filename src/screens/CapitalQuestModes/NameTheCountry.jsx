@@ -224,7 +224,7 @@ function NameTheCountry({ countries, features, worldPolygons, target, setTarget 
         </label>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
           <input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-          Show country names
+          Show All Countries
         </label>
       </div>
 

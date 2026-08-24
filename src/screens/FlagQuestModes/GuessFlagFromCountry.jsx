@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { shuffleArray } from '../../utils/capitalHelpers';
 
-function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
+function GuessFlagFromCountry({
+  countries,
+  target,
+  setTarget,
+  onNewTarget,
+  // session props
+  sessionActive = false,
+  sessionGuessCount = 0,
+  sessionMaxGuesses = null,
+  onSessionGuess = null,
+  onSessionWin = null,
+  sessionRoundOver = false,
+  sessionFailed = false,
+  sessionFailReason = null,
+  sessionRoundKey = 0,
+}) {
   const [guessCount, setGuessCount] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [options, setOptions] = useState([]);
@@ -26,8 +41,40 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
       setHintReveal(null);
       setFlagErrors(new Set());
       setRevealFlagErrors(new Set());
+      if (!sessionActive) {
+        setGuessCount(0);
+        setGameWon(false);
+      }
     }
   }, [target, countries]);
+
+  // Session round reset
+  useEffect(() => {
+    if (sessionActive) {
+      setTried(new Set());
+      setHintReveal(null);
+      setFlagErrors(new Set());
+      setRevealFlagErrors(new Set());
+      setGameWon(false);
+      // options rebuilt via above effect but also ensure rebuild on roundKey
+      if (target) setOptions(buildOptions(target));
+    }
+  }, [sessionActive, sessionRoundKey]);
+
+  // When session indicates round over, build reveal (for both success and fail so answer visible)
+  useEffect(() => {
+    if (sessionActive && sessionRoundOver && target && options.length) {
+      const correctOpt = options.find(o => o.cca3 === target.cca3) || { cca3: target.cca3, name: target.name.common, flag: target.flag };
+      const others = options.filter(o => o.cca3 !== target.cca3).map(o => ({ cca3: o.cca3, name: o.name, flag: o.flag }));
+      // if already have hintReveal from win, keep it; otherwise create for fail
+      if (!hintReveal || hintReveal.correct.cca3 !== correctOpt.cca3) {
+        setHintReveal({ correct: correctOpt, others });
+      }
+    }
+    if (sessionActive && !sessionRoundOver) {
+      setHintReveal(null);
+    }
+  }, [sessionActive, sessionRoundOver, target, options]);
 
   const newGame = () => {
     setGuessCount(0);
@@ -46,6 +93,26 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
 
   const handlePick = (opt) => {
     const cca3 = opt.cca3;
+    if (sessionActive) {
+      if (tried.has(cca3) || sessionRoundOver) return;
+      if (sessionMaxGuesses != null && sessionGuessCount >= sessionMaxGuesses) return;
+      const isCorrect = cca3 === target.cca3;
+      if (isCorrect) {
+        if (onSessionWin) onSessionWin();
+        const others = options
+          .filter(o => o.cca3 !== cca3)
+          .map(o => ({ cca3: o.cca3, name: o.name, flag: o.flag }));
+        setHintReveal({ correct: opt, others });
+      } else {
+        setTried(prev => {
+          const ns = new Set(prev);
+          ns.add(cca3);
+          return ns;
+        });
+        if (onSessionGuess) onSessionGuess(cca3, false);
+      }
+      return;
+    }
     if (tried.has(cca3) || gameWon) return;
     setGuessCount(n => n + 1);
     if (cca3 === target.cca3) {
@@ -66,6 +133,12 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
 
   if (!target) return <div style={{ color: '#a0aec0' }}>Loading...</div>;
 
+  const effectiveGuessCount = sessionActive ? sessionGuessCount : guessCount;
+  const effectiveWon = sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon;
+  const effectiveFailed = sessionActive ? sessionFailed : false;
+  const guessesExhausted = sessionActive && sessionMaxGuesses != null && sessionGuessCount >= sessionMaxGuesses;
+  const disabledAll = sessionActive ? (sessionRoundOver || guessesExhausted) : gameWon;
+
   return (
     <div>
       <div style={{ margin: '20px 0' }}>
@@ -81,17 +154,34 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
         </div>
       </div>
 
-      {gameWon ? (
-        <h2 style={{ color: '#48bb78' }}>
-          🎉 Correct! The flag of {target.name.common} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!
-        </h2>
+      {sessionActive ? (
+        sessionRoundOver ? (
+          sessionFailed ? (
+            <h2 style={{ color: '#fc8181' }}>❌ {sessionFailReason || 'Incorrect'} — The flag of {target.name.common}</h2>
+          ) : (
+            <h2 style={{ color: '#48bb78' }}>
+              🎉 Correct! The flag of {target.name.common} ({effectiveGuessCount} {effectiveGuessCount === 1 ? 'guess' : 'guesses'})!
+            </h2>
+          )
+        ) : (
+          <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '12px' }}>
+            Pick the correct flag — wrong guesses will be disabled. {sessionMaxGuesses != null ? `Guesses: ${effectiveGuessCount} / ${sessionMaxGuesses}` : `Guesses: ${effectiveGuessCount}`}
+            {guessesExhausted ? ' — no guesses left' : ''}
+          </div>
+        )
       ) : (
-        <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '12px' }}>
-          Pick the correct flag — wrong guesses will be disabled.
-        </div>
+        gameWon ? (
+          <h2 style={{ color: '#48bb78' }}>
+            🎉 Correct! The flag of {target.name.common} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!
+          </h2>
+        ) : (
+          <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '12px' }}>
+            Pick the correct flag — wrong guesses will be disabled.
+          </div>
+        )
       )}
 
-      {hintReveal && (
+      {(sessionActive ? (sessionRoundOver && hintReveal) : hintReveal) && hintReveal && (
         <div style={{
           background: '#1a202c',
           border: '1px solid #4a5568',
@@ -102,8 +192,8 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
           maxWidth: '620px',
           margin: '0 auto 16px',
         }}>
-          <div style={{ color: '#68d391', fontWeight: 'bold', fontSize: '15px', textAlign: 'center', marginBottom: '10px' }}>
-            Correct: {hintReveal.correct.name}
+          <div style={{ color: effectiveFailed ? '#fc8181' : '#68d391', fontWeight: 'bold', fontSize: '15px', textAlign: 'center', marginBottom: '10px' }}>
+            {effectiveFailed ? `Answer: ${hintReveal.correct.name}` : `Correct: ${hintReveal.correct.name}`}
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
             {revealFlagErrors.has(hintReveal.correct.cca3) ? (
@@ -117,7 +207,7 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
                   ns.add(hintReveal.correct.cca3);
                   return ns;
                 })}
-                style={{ width: '180px', height: '120px', objectFit: 'contain', borderRadius: '6px', border: '2px solid #48bb78' }}
+                style={{ width: '180px', height: '120px', objectFit: 'contain', borderRadius: '6px', border: `2px solid ${effectiveFailed ? '#fc8181' : '#48bb78'}` }}
               />
             )}
           </div>
@@ -160,78 +250,87 @@ function GuessFlagFromCountry({ countries, target, setTarget, onNewTarget }) {
         </div>
       )}
 
-      {!gameWon && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '14px',
-          maxWidth: '620px',
-          margin: '12px auto 16px',
-        }}>
-          {options.map((opt) => {
-            const isTried = tried.has(opt.cca3);
-            const disabled = gameWon || isTried;
-            return (
-              <button
-                key={opt.cca3}
-                onClick={() => handlePick(opt)}
-                disabled={disabled}
-                aria-label={`Flag of ${opt.name}`}
-                title={isTried ? `${opt.name} ✗` : undefined}
-                style={{
-                  padding: '8px',
-                  borderRadius: '8px',
-                  border: '1px solid #4a5568',
-                  background: isTried ? '#4a5568' : '#2d3748',
-                  color: isTried ? '#a0aec0' : 'white',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  opacity: isTried ? 0.45 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: '84px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {flagErrors.has(opt.cca3) ? (
-                  <span style={{ fontSize: '48px' }}>{opt.flag}</span>
-                ) : (
-                  <img
-                    src={`${import.meta.env.BASE_URL}maps/${opt.cca3.toLowerCase()}.svg`}
-                    alt={`Flag of ${opt.name}`}
-                    onError={() => setFlagErrors(prev => {
-                      const ns = new Set(prev);
-                      ns.add(opt.cca3);
-                      return ns;
-                    })}
-                    style={{ width: '120px', height: '80px', objectFit: 'contain', borderRadius: '4px', display: 'block' }}
-                  />
-                )}
-                {isTried && (
-                  <span style={{
-                    position: 'absolute',
-                    inset: 0,
+      {!disabledAll || (sessionActive && !sessionRoundOver) ? (
+        (!sessionActive && !gameWon) || (sessionActive && !sessionRoundOver) ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '14px',
+            maxWidth: '620px',
+            margin: '12px auto 16px',
+          }}>
+            {options.map((opt) => {
+              const isTried = tried.has(opt.cca3);
+              const disabled = disabledAll || isTried || guessesExhausted;
+              return (
+                <button
+                  key={opt.cca3}
+                  onClick={() => handlePick(opt)}
+                  disabled={disabled}
+                  aria-label={`Flag of ${opt.name}`}
+                  title={isTried ? `${opt.name} ✗` : undefined}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: '1px solid #4a5568',
+                    background: isTried ? '#4a5568' : '#2d3748',
+                    color: isTried ? '#a0aec0' : 'white',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: isTried ? 0.45 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'rgba(0,0,0,0.45)',
-                    color: 'white',
-                    fontSize: '28px',
-                    fontWeight: 'bold',
-                  }}>✗</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+                    minHeight: '84px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {flagErrors.has(opt.cca3) ? (
+                    <span style={{ fontSize: '48px' }}>{opt.flag}</span>
+                  ) : (
+                    <img
+                      src={`${import.meta.env.BASE_URL}maps/${opt.cca3.toLowerCase()}.svg`}
+                      alt={`Flag of ${opt.name}`}
+                      onError={() => setFlagErrors(prev => {
+                        const ns = new Set(prev);
+                        ns.add(opt.cca3);
+                        return ns;
+                      })}
+                      style={{ width: '120px', height: '80px', objectFit: 'contain', borderRadius: '4px', display: 'block' }}
+                    />
+                  )}
+                  {isTried && (
+                    <span style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.45)',
+                      color: 'white',
+                      fontSize: '28px',
+                      fontWeight: 'bold',
+                    }}>✗</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : null
+      ) : null}
+
+      {/* when failed and no hintReveal yet but round over, options still disabled - hide grid */}
+      {sessionActive && sessionRoundOver && guessesExhausted && !hintReveal ? null : null}
 
       <div style={{ fontSize: '15px', color: '#a0aec0', marginBottom: '8px' }}>
-        {gameWon ? `Finished in ${guessCount} ${guessCount === 1 ? 'guess' : 'guesses'}` : `Guesses: ${guessCount} • Pick a flag above`}
+        {sessionActive ? (
+          sessionRoundOver ? `Finished in ${effectiveGuessCount} ${effectiveGuessCount === 1 ? 'guess' : 'guesses'}` : `Guesses: ${effectiveGuessCount}${sessionMaxGuesses != null ? ` / ${sessionMaxGuesses}` : ''} • Pick a flag above`
+        ) : (
+          gameWon ? `Finished in ${guessCount} ${guessCount === 1 ? 'guess' : 'guesses'}` : `Guesses: ${guessCount} • Pick a flag above`
+        )}
       </div>
 
-      {gameWon && (
+      {!sessionActive && gameWon && (
         <button
           onClick={newGame}
           style={{
