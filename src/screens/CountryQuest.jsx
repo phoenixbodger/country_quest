@@ -2,15 +2,14 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import GameShell from '../components/GameShell';
 import GuessCountryFromSilhouette from './CountryQuestModes/GuessCountryFromSilhouette';
 import GuessCapitalForQuest from './CountryQuestModes/GuessCapitalForQuest';
+import GuessFlagForQuest from './CountryQuestModes/GuessFlagForQuest';
 import { buildCapitalIndex } from '../utils/capitalHelpers';
 
-// Stages for extensibility: silhouette -> capital -> flag (flag to be added next)
-// Current implementation: silhouette -> capital (auto-advance 2s) -> play again
-// Future: add 'flag' stage after capital, ending with flag as final stage.
+// Stages: silhouette -> capital (auto-advance 2s) -> flag (auto-advance 2s) -> play again
 const STAGES = {
   SILHOUETTE: 'silhouette',
   CAPITAL: 'capital',
-  // FLAG: 'flag', // next game: What is the flag? (GuessFlagForQuest)
+  FLAG: 'flag',
 };
 
 function CountryQuest({ onHome }) {
@@ -21,6 +20,7 @@ function CountryQuest({ onHome }) {
   const [targetCountry, setTargetCountry] = useState(null);
   const [stage, setStage] = useState(STAGES.SILHOUETTE);
   const [silhouetteGuessCount, setSilhouetteGuessCount] = useState(0);
+  const [capitalGuessCount, setCapitalGuessCount] = useState(0);
   const timerRef = useRef(null);
 
   const capitalIndex = useMemo(() => {
@@ -66,12 +66,14 @@ function CountryQuest({ onHome }) {
     if (!countries.length || !validCca3Set.size) {
       setStage(STAGES.SILHOUETTE);
       setSilhouetteGuessCount(0);
+      setCapitalGuessCount(0);
       return;
     }
     const next = pickRandomTarget(countries, validCca3Set);
     setTargetCountry(next);
     setStage(STAGES.SILHOUETTE);
     setSilhouetteGuessCount(0);
+    setCapitalGuessCount(0);
     console.log('Secret Target Country:', next.name.common);
   };
 
@@ -91,6 +93,23 @@ function CountryQuest({ onHome }) {
       timerRef.current = null;
     }
     setStage(STAGES.CAPITAL);
+  };
+
+  const handleCapitalWon = (guessCount) => {
+    setCapitalGuessCount(guessCount);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setStage(STAGES.FLAG);
+      timerRef.current = null;
+    }, 2000);
+  };
+
+  const handleSkipToFlag = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setStage(STAGES.FLAG);
   };
 
   // Build a feature-like target for silhouette mode (needs properties.cca3/name)
@@ -130,19 +149,21 @@ function CountryQuest({ onHome }) {
           targetCountry={targetCountry}
           capitalIndex={capitalIndex}
           silhouetteGuessCount={silhouetteGuessCount}
+          onWon={handleCapitalWon}
           onPlayAgain={handleNewRound}
         />
       )}
 
-      {/* Future extensibility note:
-          Add STAGES.FLAG and a component GuessFlagForQuest similar to FlagQuestModes/GuessFlagFromCountry.
-          Chain would be: silhouette -> capital -> flag, with flag as final stage.
-          Example:
-          {stage === STAGES.FLAG && targetCountry && (
-            <GuessFlagForQuest targetCountry={targetCountry} countries={countries} onPlayAgain={handleNewRound} />
-          )}
-          onCapitalWon would auto-advance to FLAG instead of ending.
-      */}
+      {stage === STAGES.FLAG && targetCountry && (
+        <GuessFlagForQuest
+          key={`flag-${targetCountry?.cca3}`}
+          targetCountry={targetCountry}
+          countries={countries}
+          silhouetteGuessCount={silhouetteGuessCount}
+          capitalGuessCount={capitalGuessCount}
+          onPlayAgain={handleNewRound}
+        />
+      )}
 
       {/* If silhouette won, allow instant skip to capital (accessibility) */}
       {stage === STAGES.SILHOUETTE && silhouetteGuessCount > 0 && (
@@ -160,6 +181,25 @@ function CountryQuest({ onHome }) {
             }}
           >
             Continue to capital now →
+          </button>
+        </div>
+      )}
+
+      {stage === STAGES.CAPITAL && capitalGuessCount > 0 && (
+        <div style={{ marginTop: '10px' }}>
+          <button
+            onClick={handleSkipToFlag}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '6px',
+              border: '1px solid #4a5568',
+              background: '#2d3748',
+              color: '#63b3ed',
+              cursor: 'pointer',
+              fontSize: '13px',
+            }}
+          >
+            Continue to flag now →
           </button>
         </div>
       )}

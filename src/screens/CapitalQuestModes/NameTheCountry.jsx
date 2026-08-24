@@ -17,7 +17,7 @@ function NameTheCountry({ countries, features, worldPolygons, target, setTarget 
   const [gameWon, setGameWon] = useState(false);
   const [lastHint, setLastHint] = useState(null);
   const [showBorders, setShowBorders] = useState(false);
-  const [showLabels, setShowLabels] = useState(true);
+  const [showLabels, setShowLabels] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());

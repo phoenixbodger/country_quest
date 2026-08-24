@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import CountryOutline from '../../CountryOutline';
 import CapitalGuessForm from '../../components/CapitalGuessForm';
 import HintChoices from '../../components/HintChoices';
 import { normalizeCap, getHintCapitals, joinCountryNames } from '../../utils/capitalHelpers';
 
-function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhouetteGuessCount }) {
+function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhouetteGuessCount, onWon }) {
   const { uniqueCapitals, capitalToCountries } = capitalIndex || { uniqueCapitals: [], capitalToCountries: new Map() };
   const [guessValue, setGuessValue] = useState('');
   const [guesses, setGuesses] = useState([]);
@@ -29,6 +29,11 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
 
   const remainingCapitals = hasCapital ? target.capital.filter(c => !foundCapitals.has(normalizeCap(c))) : [];
 
+  useEffect(() => {
+    if (!hasCapital && onWon) onWon(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleGuessCapital = (rawCapital) => {
     if (gameFullyWon) return;
     const lower = normalizeCap(rawCapital);
@@ -46,6 +51,7 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
       if (next.size === totalCapitals) {
         setGameFullyWon(true);
         setShowHint(false);
+        if (onWon) onWon(guessCount + 1);
       }
       return;
     }
@@ -90,6 +96,7 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
       setFoundCapitals(next);
       if (next.size === totalCapitals) {
         setGameFullyWon(true);
+        if (onWon) onWon(guessCount + 1);
       }
       setShowHint(false);
     } else {
@@ -138,13 +145,8 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
         </div>
 
         <div style={{ marginTop: '20px', color: '#a0aec0', fontSize: '15px' }}>
-          Quest will continue with flag challenge soon — for now, play another country!
+          {onWon ? 'Moving on to the flag challenge…' : 'Quest will continue with flag challenge soon — for now, play another country!'}
         </div>
-
-        {/* Future extensibility: flag stage will be inserted here. Example:
-            stages: ['silhouette','capital','flag']
-            if (!hasCapital) auto-skip to flag instead of showing this message.
-        */}
 
         <button
           onClick={onPlayAgain}
@@ -322,24 +324,27 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
 
       {gameFullyWon && (
         <div style={{ marginTop: '10px' }}>
-          {/* Future extensibility: next stage is flag — insert flag challenge button here before Play again.
-              Example: <button onClick={onNextFlag}>🏳️ Guess the Flag</button>
-              For now we end with Play again. */}
-          <button
-            onClick={onPlayAgain}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '6px',
-              border: 'none',
-              background: '#48bb78',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold',
-            }}
-          >
-            Play again
-          </button>
+          {onWon ? (
+            <div style={{ color: '#63b3ed', fontSize: '15px', fontWeight: 'bold' }}>
+              🏳️ Next: guess the flag…
+            </div>
+          ) : (
+            <button
+              onClick={onPlayAgain}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '6px',
+                border: 'none',
+                background: '#48bb78',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+              }}
+            >
+              Play again
+            </button>
+          )}
         </div>
       )}
     </div>

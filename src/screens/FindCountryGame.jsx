@@ -17,7 +17,7 @@ function FindCountryGame({ onHome }) {
   const [gameWon, setGameWon] = useState(false);
   const [lastHint, setLastHint] = useState(null);
   const [showBorders, setShowBorders] = useState(false);
-  const [showNames, setShowNames] = useState(true);
+  const [showNames, setShowNames] = useState(false);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
