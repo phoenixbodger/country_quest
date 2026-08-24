@@ -209,7 +209,7 @@ function GlobeExplore({ onHome }) {
           ref={globeRef}
           width={globeSize}
           height={Math.round(globeSize * 0.7)}
-          globeImageUrl={showBorders && borderedGlobeUrl ? borderedGlobeUrl : `${import.meta.env.BASE_URL}earth-day.jpg`}
+          globeImageUrl={showBorders && borderedGlobeUrl ? borderedGlobeUrl : `${import.meta.env.BASE_URL}earth-8k.jpg`}
           backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
 
           polygonsData={polygonData}

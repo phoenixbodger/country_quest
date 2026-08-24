@@ -471,7 +471,7 @@ function FindCountryGame({ onHome }) {
               width={globeSize}
               height={globeSize}
               backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-              globeImageUrl={showBorders && borderedGlobeUrl ? borderedGlobeUrl : `${import.meta.env.BASE_URL}earth-day.jpg`}
+              globeImageUrl={showBorders && borderedGlobeUrl ? borderedGlobeUrl : `${import.meta.env.BASE_URL}earth-8k.jpg`}
               polygonsData={polygonData}
               polygonCapColor="color"
               polygonAltitude="altitude"

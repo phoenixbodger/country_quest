@@ -8,7 +8,7 @@ import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
 
-function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon }) {
+function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon, onGuessCountChange, disabled }) {
   const globeRef = useRef();
   const containerRef = useRef();
   const [globeSize, setGlobeSize] = useState(400);
@@ -63,6 +63,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     setLastHint(null);
     setShowHint(false);
     setAdvancing(true);
+    if (onGuessCountChange) onGuessCountChange(nextCount);
     if (onWon) {
       // parent will auto-advance after 2s
       onWon(nextCount);
@@ -70,9 +71,10 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   };
 
   const handleGuessByCca3 = (cca3) => {
-    if (gameWon || tried.some(t => t.cca3 === cca3)) return;
+    if (disabled || gameWon || tried.some(t => t.cca3 === cca3)) return;
     const nextCount = guessCount + 1;
     setGuessCount(nextCount);
+    if (onGuessCountChange) onGuessCountChange(nextCount);
     // target is a geo feature with properties.cca3, but parent may pass country obj with cca3
     const targetCca3 = target?.properties?.cca3 || target?.cca3;
     if (cca3 === targetCca3) {
@@ -102,7 +104,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   };
 
   const handleSubmitCountry = (country) => {
-    if (gameWon) return;
+    if (disabled || gameWon) return;
     handleGuessByCca3(country.cca3);
     setGuessValue('');
   };
@@ -131,7 +133,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   };
 
   const handleMissClick = ({ lat, lng }) => {
-    if (gameWon) return;
+    if (disabled || gameWon) return;
     const altitude = globeRef.current?.pointOfView()?.altitude ?? 2.5;
     const toleranceKm = Math.min(600, Math.max(20, altitude * 200));
     const nearest = findNearestCountry(countryIndex, lat, lng);
@@ -191,7 +193,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   const handleHintPick = (opt) => {
     const cca3 = opt.cca3;
     const lower = cca3.toLowerCase();
-    if (hintTried.has(lower) || gameWon) return;
+    if (disabled || hintTried.has(lower) || gameWon) return;
     const targetCca3 = target?.properties?.cca3 || target?.cca3;
     if (cca3 === targetCca3) {
       const nextCount = guessCount + 1;
@@ -255,7 +257,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           width={globeSize}
           height={globeSize}
           backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-          globeImageUrl={showBorders && borderedGlobeUrl ? borderedGlobeUrl : `${import.meta.env.BASE_URL}earth-day.jpg`}
+          globeImageUrl={showBorders && borderedGlobeUrl ? borderedGlobeUrl : `${import.meta.env.BASE_URL}earth-8k.jpg`}
           polygonsData={polygonData}
           polygonCapColor="color"
           polygonAltitude="altitude"
@@ -302,7 +304,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           onChange={e => setGuessValue(e.target.value)}
           placeholder="Type a country name or click globe..."
           list="country-list-silhouette"
-          disabled={gameWon}
+          disabled={disabled || gameWon}
           style={{ padding: '10px', width: '250px', borderRadius: '5px', border: 'none', fontSize: '16px' }}
         />
         <datalist id="country-list-silhouette">
@@ -312,15 +314,15 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
         </datalist>
         <button
           type="submit"
-          disabled={gameWon || !countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase())}
+          disabled={disabled || gameWon || !countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase())}
           style={{
             padding: '10px 20px',
             marginLeft: '10px',
             borderRadius: '5px',
             border: 'none',
-            background: !gameWon && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? '#48bb78' : '#4a5568',
+            background: !disabled && !gameWon && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? '#48bb78' : '#4a5568',
             color: 'white',
-            cursor: !gameWon && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? 'pointer' : 'not-allowed',
+            cursor: !disabled && !gameWon && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? 'pointer' : 'not-allowed',
             fontSize: '16px',
           }}
         >
@@ -328,7 +330,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
         </button>
       </form>
 
-      {!gameWon && !showHint && (
+      {!disabled && !gameWon && !showHint && (
         <button
           onClick={openHint}
           style={{
@@ -346,7 +348,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           💡 Hint (4 choices)
         </button>
       )}
-      {showHint && !gameWon && (
+      {showHint && !gameWon && !disabled && (
         <div style={{ marginBottom: '16px' }}>
           <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '6px' }}>Pick the country for this silhouette:</div>
           <HintChoices
@@ -354,7 +356,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
             correct={targetCca3}
             triedSet={hintTried}
             onPick={handleHintPick}
-            disabled={gameWon}
+            disabled={disabled || gameWon}
           />
           <button
             onClick={() => setShowHint(false)}

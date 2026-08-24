@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { shuffleArray } from '../../utils/capitalHelpers';
 
-function GuessFlagForQuest({ targetCountry, countries, silhouetteGuessCount, capitalGuessCount, onPlayAgain }) {
+function GuessFlagForQuest({ targetCountry, countries, silhouetteGuessCount, capitalGuessCount, onPlayAgain, onWon, onFailed, onGuessCountChange, disabled, questComplete }) {
   const [guessCount, setGuessCount] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [options, setOptions] = useState([]);
@@ -33,20 +33,24 @@ function GuessFlagForQuest({ targetCountry, countries, silhouetteGuessCount, cap
 
   const handlePick = (opt) => {
     const cca3 = opt.cca3;
-    if (tried.has(cca3) || gameWon) return;
-    setGuessCount(n => n + 1);
+    if (disabled || tried.has(cca3) || gameWon) return;
+    const nextCount = guessCount + 1;
+    setGuessCount(nextCount);
+    if (onGuessCountChange) onGuessCountChange(nextCount);
     if (cca3 === target.cca3) {
       const others = options
         .filter(o => o.cca3 !== cca3)
         .map(o => ({ cca3: o.cca3, name: o.name, flag: o.flag }));
       setHintReveal({ correct: opt, others });
       setGameWon(true);
+      if (onWon) onWon(nextCount);
     } else {
-      setTried(prev => {
-        const ns = new Set(prev);
-        ns.add(cca3);
-        return ns;
-      });
+      const newTried = new Set(tried);
+      newTried.add(cca3);
+      setTried(newTried);
+      if (onFailed && newTried.size === options.length - 1) {
+        onFailed(nextCount);
+      }
     }
   };
 
@@ -230,7 +234,7 @@ function GuessFlagForQuest({ targetCountry, countries, silhouetteGuessCount, cap
         </div>
       )}
 
-      {gameWon && (
+      {gameWon && !onWon && (
         <button
           onClick={onPlayAgain}
           style={{
@@ -246,6 +250,11 @@ function GuessFlagForQuest({ targetCountry, countries, silhouetteGuessCount, cap
         >
           Play again
         </button>
+      )}
+      {gameWon && onWon && !disabled && questComplete && (
+        <div style={{ color: '#63b3ed', fontSize: '15px', fontWeight: 'bold', marginTop: '8px' }}>
+          Quest complete — check header for Next quest →
+        </div>
       )}
     </div>
   );

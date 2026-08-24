@@ -89,7 +89,7 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
         ref={globeRef}
         width={400}
         height={400}
-        globeImageUrl={`${import.meta.env.BASE_URL}earth-day.jpg`}
+        globeImageUrl={`${import.meta.env.BASE_URL}earth-8k.jpg`}
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
 
         polygonsData={polygonData}
