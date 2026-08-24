@@ -5,6 +5,7 @@ import HintChoices from '../../components/HintChoices';
 import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
+import { getProximityColor } from '../../distanceColors';
 
 function NameTheCountry({
   countries,
@@ -122,7 +123,8 @@ function NameTheCountry({
         { latitude: cLat, longitude: cLng },
         { latitude: tLat, longitude: tLng }
       );
-      setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng }]);
+      const color = getProximityColor(distanceKm);
+      setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
       setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
       if (onSessionGuess) onSessionGuess(cca3, false);
       return;
@@ -148,7 +150,8 @@ function NameTheCountry({
       { latitude: cLat, longitude: cLng },
       { latitude: tLat, longitude: tLng }
     );
-    setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng }]);
+    const color = getProximityColor(distanceKm);
+    setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
     setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
   };
 
@@ -214,15 +217,15 @@ function NameTheCountry({
       .map(polygon => {
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
         const isTarget = (sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && target && target.properties.cca3.toLowerCase() === cca3;
-        const isTried = tried.some(t => t.cca3.toLowerCase() === cca3);
+        const matched = tried.find(t => t.cca3.toLowerCase() === cca3);
         let color = 'rgba(0, 0, 0, 0)';
-        if (isTarget) color = '#16a34a';
-        else if (isTried) color = 'rgba(225, 29, 72, 0.55)';
+        if (isTarget) color = '#22c55e';
+        else if (matched) color = matched.color;
         return {
           ...polygon,
           cca3,
           color,
-          altitude: isTarget ? 0.03 : isTried ? 0.02 : 0.01,
+          altitude: isTarget ? 0.03 : matched ? 0.02 : 0.01,
         };
       });
   }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed]);
@@ -546,10 +549,14 @@ function NameTheCountry({
                   color: 'white',
                   cursor: 'pointer',
                   fontSize: '15px',
+                  borderLeft: `6px solid ${t.color}`,
                 }}
               >
-                <span>{t.name}</span>
-                <span style={{ color: '#f6ad55', fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: t.color, display: 'inline-block', flexShrink: 0 }} />
+                  {t.name}
+                </span>
+                <span style={{ color: t.color, fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
               </button>
             ))}
           </div>
