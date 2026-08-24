@@ -327,9 +327,9 @@ function FlagQuest({ onHome }) {
           <div style={{ fontSize: '13px', color: '#a0aec0', marginBottom: '10px' }}>
             {mode === 'country'
               ? 'We show a flag — guess its country. Click the globe to fill the box. Wrong guesses show distance & direction.'
-              : 'We show a country — pick its flag from 6 choices. Wrong picks are disabled; correct shows all flags for learning.'}
+              : 'We show a country — pick its flag from your chosen number of choices. Wrong picks are disabled; correct shows all flags for learning.'}
           </div>
-          <FlagQuestSetup onStart={startSession} initialMode={mode} />
+          <FlagQuestSetup key={mode} onStart={startSession} initialMode={mode} />
         </>
       )}
 
@@ -424,6 +424,7 @@ function FlagQuest({ onHome }) {
               target={targetCountry}
               setTarget={setTargetCountry}
               onNewTarget={pickNextTarget}
+              numChoices={config.numChoices ?? 6}
               sessionActive
               sessionGuessCount={guessCount}
               sessionMaxGuesses={config.maxGuesses}

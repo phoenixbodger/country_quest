@@ -3,10 +3,33 @@ import React, { useState } from 'react';
 function FlagQuestSetup({ onStart, initialMode }) {
   const [numGames, setNumGames] = useState('10'); // '5','10','15','20','unlimited','custom'
   const [customNumGames, setCustomNumGames] = useState('25');
-  const [maxGuesses, setMaxGuesses] = useState('unlimited');
+  const [maxGuesses, setMaxGuesses] = useState(initialMode === 'flag' ? 'max' : 'unlimited');
   const [customGuesses, setCustomGuesses] = useState('5');
   const [timeLimit, setTimeLimit] = useState('none'); // 'none','15','30','60','120','custom'
   const [customTime, setCustomTime] = useState('45');
+  const [numChoices, setNumChoices] = useState('6');
+  const [customNumChoices, setCustomNumChoices] = useState('6');
+
+  const isFlagMode = initialMode === 'flag';
+
+  const getNumChoicesValue = () => {
+    let n;
+    if (numChoices === 'custom') {
+      n = parseInt(customNumChoices, 10);
+      if (!Number.isFinite(n)) return 6;
+    } else {
+      n = parseInt(numChoices, 10);
+      if (!Number.isFinite(n)) return 6;
+    }
+    // clamp 2..10 for flag quest game (max 10 to avoid too many)
+    return Math.min(Math.max(2, n), 10);
+  };
+
+  const getMaxAllowedGuesses = () => {
+    if (!isFlagMode) return null;
+    const choices = getNumChoicesValue();
+    return Math.max(1, choices - 1);
+  };
 
   const getNumGamesValue = () => {
     if (numGames === 'unlimited') return null;
@@ -18,6 +41,21 @@ function FlagQuestSetup({ onStart, initialMode }) {
   };
 
   const getMaxGuessesValue = () => {
+    if (isFlagMode) {
+      const maxAllowed = getMaxAllowedGuesses();
+      if (maxGuesses === 'max') return maxAllowed;
+      if (maxGuesses === 'custom') {
+        const n = parseInt(customGuesses, 10);
+        if (!Number.isFinite(n) || n <= 0) return Math.min(5, maxAllowed);
+        // for flag mode enforce at least 1 when choices=2, otherwise at least 2
+        const minAllowed = maxAllowed >= 2 ? 2 : 1;
+        return Math.min(Math.max(minAllowed, n), maxAllowed);
+      }
+      const v = parseInt(maxGuesses, 10);
+      if (!Number.isFinite(v)) return maxAllowed;
+      const minAllowed = maxAllowed >= 2 ? 2 : 1;
+      return Math.min(Math.max(minAllowed, v), maxAllowed);
+    }
     if (maxGuesses === 'unlimited') return null;
     if (maxGuesses === 'custom') {
       const n = parseInt(customGuesses, 10);
@@ -36,11 +74,17 @@ function FlagQuestSetup({ onStart, initialMode }) {
   };
 
   const handleStart = () => {
-    onStart({
+    const payload = {
       numGames: getNumGamesValue(),
       maxGuesses: getMaxGuessesValue(),
       timeLimitSec: getTimeLimitValue(),
-    });
+    };
+    if (isFlagMode) {
+      payload.numChoices = getNumChoicesValue();
+    } else {
+      payload.numChoices = null;
+    }
+    onStart(payload);
   };
 
   const selectStyle = {
@@ -53,6 +97,77 @@ function FlagQuestSetup({ onStart, initialMode }) {
   };
 
   const labelStyle = { color: '#e2e8f0', fontSize: '14px', fontWeight: 'bold', textAlign: 'left', marginBottom: '6px' };
+
+  // For flag mode, build guesses options dynamically: 2,3,5,Max filtered by maxAllowed
+  const renderGuessesOptions = () => {
+    if (isFlagMode) {
+      const maxAllowed = getMaxAllowedGuesses();
+      const base = ['2', '3', '5'];
+      const filtered = base.filter(v => parseInt(v, 10) <= maxAllowed && v !== String(maxAllowed));
+      // dedupe if 5 equals maxAllowed and we also have Max
+      const showMaxLabel = `Max (${maxAllowed})`;
+      return (
+        <>
+          {filtered.map(v => (
+            <button
+              key={v}
+              onClick={() => setMaxGuesses(v)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #4a5568',
+                background: maxGuesses === v ? '#3182ce' : '#2d3748',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
+              {`${v} ${parseInt(v, 10) === 1 ? 'guess' : 'guesses'}`}
+            </button>
+          ))}
+          <button
+            key="max"
+            onClick={() => setMaxGuesses('max')}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #4a5568',
+              background: maxGuesses === 'max' ? '#3182ce' : '#2d3748',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '13px',
+            }}
+          >
+            {showMaxLabel}
+          </button>
+        </>
+      );
+    }
+    return (
+      <>
+        {['unlimited', '1', '3', '5', '10'].map(v => (
+          <button
+            key={v}
+            onClick={() => setMaxGuesses(v)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #4a5568',
+              background: maxGuesses === v ? '#3182ce' : '#2d3748',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '13px',
+            }}
+          >
+            {v === 'unlimited' ? '∞ Unlimited' : `${v} ${parseInt(v, 10) === 1 ? 'guess' : 'guesses'}`}
+          </button>
+        ))}
+      </>
+    );
+  };
 
   return (
     <div style={{ maxWidth: '520px', margin: '10px auto', background: '#1a202c', border: '1px solid #2d3748', borderRadius: '12px', padding: '18px' }}>
@@ -111,27 +226,62 @@ function FlagQuestSetup({ onStart, initialMode }) {
           </div>
         </div>
 
-        <div>
-          <div style={labelStyle}>Guesses per flag (max)</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {['unlimited', '1', '3', '5', '10'].map(v => (
+        {isFlagMode && (
+          <div>
+            <div style={labelStyle}>Flags per question (choices)</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {['2', '4', '6', '8', '10'].map(v => (
+                <button
+                  key={v}
+                  onClick={() => setNumChoices(v)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #4a5568',
+                    background: numChoices === v ? '#3182ce' : '#2d3748',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '13px',
+                  }}
+                >
+                  {v}
+                </button>
+              ))}
               <button
-                key={v}
-                onClick={() => setMaxGuesses(v)}
+                onClick={() => setNumChoices('custom')}
                 style={{
                   padding: '8px 12px',
                   borderRadius: '6px',
                   border: '1px solid #4a5568',
-                  background: maxGuesses === v ? '#3182ce' : '#2d3748',
+                  background: numChoices === 'custom' ? '#3182ce' : '#2d3748',
                   color: 'white',
                   cursor: 'pointer',
                   fontWeight: 'bold',
                   fontSize: '13px',
                 }}
               >
-                {v === 'unlimited' ? '∞ Unlimited' : `${v} ${parseInt(v, 10) === 1 ? 'guess' : 'guesses'}`}
+                Custom
               </button>
-            ))}
+              {numChoices === 'custom' && (
+                <input
+                  type="number"
+                  min="2"
+                  max="10"
+                  value={customNumChoices}
+                  onChange={e => setCustomNumChoices(e.target.value)}
+                  style={{ ...selectStyle, width: '80px' }}
+                />
+              )}
+            </div>
+            <div style={{ fontSize: '12px', color: '#718096', marginTop: '4px' }}>How many flag options to show per question. Min 2, max 10.</div>
+          </div>
+        )}
+
+        <div>
+          <div style={labelStyle}>Guesses per flag (max)</div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {renderGuessesOptions()}
             <button
               onClick={() => setMaxGuesses('custom')}
               style={{
@@ -150,15 +300,17 @@ function FlagQuestSetup({ onStart, initialMode }) {
             {maxGuesses === 'custom' && (
               <input
                 type="number"
-                min="1"
-                max="50"
+                min={isFlagMode ? (getMaxAllowedGuesses() >= 2 ? 2 : 1) : 1}
+                max={isFlagMode ? getMaxAllowedGuesses() : 50}
                 value={customGuesses}
                 onChange={e => setCustomGuesses(e.target.value)}
                 style={{ ...selectStyle, width: '80px' }}
               />
             )}
           </div>
-          <div style={{ fontSize: '12px', color: '#718096', marginTop: '4px' }}>If limit reached without correct answer, it is marked incorrect and the answer is revealed.</div>
+          <div style={{ fontSize: '12px', color: '#718096', marginTop: '4px' }}>
+            {isFlagMode ? `For Guess the Flag, max is choices − 1 (${getMaxAllowedGuesses()} guesses). Min ${getMaxAllowedGuesses() >= 2 ? 2 : 1}.` : 'If limit reached without correct answer, it is marked incorrect and the answer is revealed.'}
+          </div>
         </div>
 
         <div>

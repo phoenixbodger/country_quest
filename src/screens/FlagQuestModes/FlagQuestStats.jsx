@@ -20,6 +20,7 @@ function FlagQuestStats({ stats, config, mode, onReplaySame, onChangeSettings, o
           {config.maxGuesses == null ? '∞ guesses' : `${config.maxGuesses} max guesses`}
           {' • '}
           {config.timeLimitSec == null ? 'No timer' : `${config.timeLimitSec}s timer`}
+          {mode === 'flag' && config.numChoices != null ? ` • ${config.numChoices} choices` : ''}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>

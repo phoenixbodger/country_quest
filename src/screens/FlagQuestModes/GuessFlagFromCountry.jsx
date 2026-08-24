@@ -6,6 +6,7 @@ function GuessFlagFromCountry({
   target,
   setTarget,
   onNewTarget,
+  numChoices = 6,
   // session props
   sessionActive = false,
   sessionGuessCount = 0,
@@ -25,12 +26,19 @@ function GuessFlagFromCountry({
   const [flagErrors, setFlagErrors] = useState(new Set());
   const [revealFlagErrors, setRevealFlagErrors] = useState(new Set());
 
+  const getEffectiveNumChoices = () => {
+    const n = parseInt(numChoices, 10);
+    if (!Number.isFinite(n)) return 6;
+    return Math.min(Math.max(2, n), Math.min(10, countries.length || 10));
+  };
+
   const buildOptions = (targetCountry) => {
     if (!targetCountry || !countries.length) return [];
     const correct = { cca3: targetCountry.cca3, name: targetCountry.name.common, flag: targetCountry.flag };
+    const effective = getEffectiveNumChoices();
     const pool = countries.filter(c => c.cca3 !== targetCountry.cca3);
     const shuffled = shuffleArray(pool);
-    const distractors = shuffled.slice(0, 5).map(c => ({ cca3: c.cca3, name: c.name.common, flag: c.flag }));
+    const distractors = shuffled.slice(0, Math.max(0, effective - 1)).map(c => ({ cca3: c.cca3, name: c.name.common, flag: c.flag }));
     return shuffleArray([...distractors, correct]);
   };
 
@@ -46,7 +54,7 @@ function GuessFlagFromCountry({
         setGameWon(false);
       }
     }
-  }, [target, countries]);
+  }, [target, countries, numChoices]);
 
   // Session round reset
   useEffect(() => {
@@ -59,7 +67,7 @@ function GuessFlagFromCountry({
       // options rebuilt via above effect but also ensure rebuild on roundKey
       if (target) setOptions(buildOptions(target));
     }
-  }, [sessionActive, sessionRoundKey]);
+  }, [sessionActive, sessionRoundKey, numChoices]);
 
   // When session indicates round over, build reveal (for both success and fail so answer visible)
   useEffect(() => {

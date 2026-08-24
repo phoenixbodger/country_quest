@@ -39,12 +39,16 @@ function GuessCountryFromFlag({
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
   const [flagError, setFlagError] = useState(false);
+  const [flagLoaded, setFlagLoaded] = useState(false);
   const [triedFlagErrors, setTriedFlagErrors] = useState(new Set());
+  const [hintFlagErrors, setHintFlagErrors] = useState(new Set());
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
     setFlagError(false);
+    setFlagLoaded(false);
     setTriedFlagErrors(new Set());
+    setHintFlagErrors(new Set());
   }, [target]);
 
   // Reset per-round state when target changes or session round key changes
@@ -59,7 +63,9 @@ function GuessCountryFromFlag({
       setHintTried(new Set());
       setGuessValue('');
       setFlagError(false);
+      setFlagLoaded(false);
       setTriedFlagErrors(new Set());
+      setHintFlagErrors(new Set());
       if (globeRef.current) {
         globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
       }
@@ -92,7 +98,9 @@ function GuessCountryFromFlag({
     setHintTried(new Set());
     setGuessValue('');
     setFlagError(false);
+    setFlagLoaded(false);
     setTriedFlagErrors(new Set());
+    setHintFlagErrors(new Set());
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
     }
@@ -306,14 +314,19 @@ function GuessCountryFromFlag({
           boxShadow: '0 4px 6px -1px rgba(0,0,0,0.3)',
         }}>
           {flagError ? (
-            <span style={{ fontSize: '120px' }}>{targetCountryObj?.flag || target.properties.name}</span>
+            <span style={{ fontSize: '120px' }}>{targetCountryObj?.flag || '🏳️'}</span>
           ) : (
-            <img
-              src={`${import.meta.env.BASE_URL}maps/${target.properties.cca3.toLowerCase()}.svg`}
-              alt={`Flag of ${target.properties.name}`}
-              onError={() => setFlagError(true)}
-              style={{ width: '300px', height: '200px', objectFit: 'contain', borderRadius: '6px' }}
-            />
+            <div style={{ width: '300px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', background: '#1a202c' }}>
+              {!flagLoaded && <span style={{ color: '#4a5568', fontSize: '14px' }}>…</span>}
+              <img
+                key={target.properties.cca3}
+                src={`${import.meta.env.BASE_URL}maps/${target.properties.cca3.toLowerCase()}.svg`}
+                alt=""
+                onLoad={() => setFlagLoaded(true)}
+                onError={() => setFlagError(true)}
+                style={{ width: '300px', height: '200px', objectFit: 'contain', borderRadius: '6px', display: flagLoaded ? 'block' : 'none' }}
+              />
+            </div>
           )}
         </div>
         <div style={{ marginTop: '10px', color: '#a0aec0', fontSize: '14px' }}>
@@ -467,6 +480,66 @@ function GuessCountryFromFlag({
           >
             Hide hint
           </button>
+        </div>
+      )}
+
+      {/* At end of round, if hint was used, show all hint choices with flags */}
+      {((sessionActive ? sessionRoundOver : gameWon) && hintOptions.length > 0 && (sessionActive ? sessionHintUsed : true)) && (
+        <div style={{
+          background: '#1a202c',
+          border: '1px solid #4a5568',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          textAlign: 'left',
+          maxWidth: '620px',
+          margin: '0 auto 16px',
+        }}>
+          <div style={{ color: effectiveFailed ? '#fc8181' : '#68d391', fontWeight: 'bold', fontSize: '15px', textAlign: 'center', marginBottom: '10px' }}>
+            {effectiveFailed ? `Answer: ${target.properties.name}` : `Correct: ${target.properties.name}`} <span style={{ fontWeight: 'normal', color: '#a0aec0', fontSize: '13px' }}>— hint choices</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '10px' }}>
+            {hintOptions.map((opt) => {
+              const isCorrect = opt.cca3.toLowerCase() === target.properties.cca3.toLowerCase();
+              const isTried = hintTried.has(opt.cca3);
+              return (
+                <div
+                  key={opt.cca3}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '6px',
+                    background: isCorrect ? 'rgba(72, 187, 120, 0.15)' : '#2d3748',
+                    border: isCorrect ? '2px solid #48bb78' : '1px solid #4a5568',
+                    color: '#e2e8f0',
+                    fontSize: '13px',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    opacity: isTried && !isCorrect ? 0.6 : 1,
+                    position: 'relative',
+                  }}
+                >
+                  {hintFlagErrors.has(opt.cca3) ? (
+                    <span style={{ fontSize: '48px' }}>{getFlagEmoji(opt.cca3) || '🏳️'}</span>
+                  ) : (
+                    <img
+                      src={`${import.meta.env.BASE_URL}maps/${opt.cca3.toLowerCase()}.svg`}
+                      alt={`Flag of ${opt.name}`}
+                      onError={() => setHintFlagErrors(prev => {
+                        const ns = new Set(prev);
+                        ns.add(opt.cca3);
+                        return ns;
+                      })}
+                      style={{ width: '90px', height: '60px', objectFit: 'contain', borderRadius: '4px' }}
+                    />
+                  )}
+                  <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{opt.name}{isCorrect ? ' ✓' : ''}{isTried && !isCorrect ? ' ✗' : ''}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
