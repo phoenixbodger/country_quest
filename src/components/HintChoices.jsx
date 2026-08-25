@@ -5,7 +5,7 @@ function HintChoices({ options, correct, triedSet, onPick, disabled }) {
   const isTried = (opt) => {
     if (!triedSet) return false;
     const key = opt.cca3 || opt.toLowerCase?.() || String(opt).toLowerCase();
-    return triedSet.has(key.toLowerCase ? key.toLowerCase() : key);
+    return triedSet.has(String(key).toLowerCase()) || triedSet.has(key);
   };
 
   const isCorrectKey = (opt) => {
