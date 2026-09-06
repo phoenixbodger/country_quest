@@ -329,7 +329,12 @@ function FindCountryGame({ onHome }) {
   const handleGuess = (cca3) => {
     if (!target) return;
     if (roundOver) return;
-    if (tried.some(t => t.cca3 === cca3)) return;
+    const existing = tried.find(t => t.cca3 === cca3);
+    if (existing) {
+      setPopup({ cca3, name: existing.name, distanceKm: existing.distanceKm, direction: existing.direction, lat: existing.lat, lng: existing.lng, color: existing.color, isWin: false });
+      setLastHint(`${existing.name} is ${existing.distanceKm.toLocaleString()} km from the target ${getArrowEmoji(existing.direction)}.`);
+      return;
+    }
     if (config && config.maxGuesses != null && guessCount >= config.maxGuesses) return;
 
     if (cca3 === target.properties.cca3) {
