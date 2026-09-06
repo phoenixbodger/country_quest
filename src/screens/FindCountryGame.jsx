@@ -20,6 +20,9 @@ function FindCountryGame({ onHome }) {
   const [tried, setTried] = useState([]);
   const [lastHint, setLastHint] = useState(null);
   const [popup, setPopup] = useState(null);
+  const [popupPosition, setPopupPosition] = useState({ x: 20, y: 20 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showBorders, setShowBorders] = useState(false);
   const [showNames, setShowNames] = useState(false);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
@@ -160,6 +163,7 @@ function FindCountryGame({ onHome }) {
       setTried([]);
       setLastHint(null);
       setPopup(null);
+      setPopupPosition({ x: 20, y: 20 });
     }
   }, [roundKey]);
 
@@ -168,32 +172,130 @@ function FindCountryGame({ onHome }) {
     return arrows[dir] || dir;
   };
 
-  const popupElements = useMemo(() => (popup ? [popup] : []), [popup]);
+  const resetPopupPosition = useCallback(() => {
+    setPopupPosition({ x: 20, y: 20 });
+  }, []);
+
+  const handleDragStart = useCallback((clientX, clientY) => {
+    setIsDragging(true);
+    setDragOffset({ x: clientX - popupPosition.x, y: clientY - popupPosition.y });
+  }, [popupPosition]);
+
+  const handleDragMove = useCallback((clientX, clientY) => {
+    if (!isDragging) return;
+    const newX = clientX - dragOffset.x;
+    const newY = clientY - dragOffset.y;
+    // Constrain within viewport
+    const maxX = window.innerWidth - 300; // approximate popup width
+    const maxY = window.innerHeight - 150; // approximate popup height
+    setPopupPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY)),
+    });
+  }, [isDragging, dragOffset]);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0) return; // only left click
+    handleDragStart(e.clientX, e.clientY);
+  }, [handleDragStart]);
+
+  const handleTouchStart = useCallback((e) => {
+    const touch = e.touches[0];
+    handleDragStart(touch.clientX, touch.clientY);
+  }, [handleDragStart]);
+
+  // Global drag handlers
+  useEffect(() => {
+    const handleMouseMove = (e) => handleDragMove(e.clientX, e.clientY);
+    const handleMouseUp = () => handleDragEnd();
+    const handleTouchMove = (e) => {
+      const touch = e.touches[0];
+      handleDragMove(touch.clientX, touch.clientY);
+    };
+    const handleTouchEnd = () => handleDragEnd();
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: true });
+      window.addEventListener('touchend', handleTouchEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
 
   const renderPopupElement = useCallback((d) => {
-    const el = document.createElement('div');
-    el.style.pointerEvents = 'none';
-    el.style.transform = 'translateY(-140%)';
-    el.style.background = '#1a202c';
-    el.style.border = '1px solid #4a5568';
-    el.style.borderLeft = `6px solid ${d.isWin ? '#22c55e' : d.color}`;
-    el.style.borderRadius = '8px';
-    el.style.padding = '6px 10px';
-    el.style.fontSize = '12px';
-    el.style.lineHeight = '1.3';
-    el.style.color = 'white';
-    el.style.whiteSpace = 'nowrap';
-    el.style.boxShadow = '0 4px 14px rgba(0,0,0,0.5)';
-    el.style.textAlign = 'left';
     const title = d.isWin ? `🎉 ${d.name}!` : d.name;
     const subtitle = d.isWin
       ? 'Correct!'
       : `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`;
-    el.innerHTML = `<div style="font-weight:bold;display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:${d.isWin ? '#22c55e' : d.color};display:inline-block;flex-shrink:0;"></span><span></span></div><div style="color:${d.isWin ? '#68d391' : d.color};font-weight:bold;margin-top:2px;"></div>`;
-    el.firstChild.lastChild.textContent = title;
-    el.lastChild.textContent = subtitle;
-    return el;
-  }, []);
+    const accentColor = d.isWin ? '#22c55e' : d.color;
+    const textColor = d.isWin ? '#68d391' : d.color;
+
+    return (
+      <div
+        style={{
+          background: '#1a202c',
+          border: '1px solid #4a5568',
+          borderLeft: `6px solid ${accentColor}`,
+          borderRadius: '8px',
+          padding: '8px 12px',
+          fontSize: '13px',
+          lineHeight: '1.4',
+          color: 'white',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+          textAlign: 'left',
+          minWidth: '200px',
+          cursor: 'move',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                background: accentColor,
+                display: 'inline-block',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ fontWeight: 'bold' }}>{title}</span>
+          </div>
+          <button
+            onClick={resetPopupPosition}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#a0aec0',
+              cursor: 'pointer',
+              fontSize: '14px',
+              lineHeight: 1,
+              padding: '2px 6px',
+              borderRadius: '4px',
+              opacity: 0.7,
+            }}
+            title="Reset position"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
+            ↻
+          </button>
+        </div>
+        <div style={{ color: textColor, fontWeight: 'bold', marginTop: '4px' }}>{subtitle}</div>
+      </div>
+    );
+  }, [resetPopupPosition, getArrowEmoji]);
 
   const handleWin = (winCca3) => {
     const newGuesses = guessCount + 1;
@@ -350,6 +452,7 @@ function FindCountryGame({ onHome }) {
     setTried([]);
     setLastHint(null);
     setPopup(null);
+    setPopupPosition({ x: 20, y: 20 });
   };
 
   const focusCountry = ({ lat, lng }) => {
@@ -509,7 +612,7 @@ function FindCountryGame({ onHome }) {
             </label>
           </div>
 
-          <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px' }}>
+          <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px', position: 'relative' }}>
             <Globe
               ref={globeRef}
               width={globeSize}
@@ -526,16 +629,26 @@ function FindCountryGame({ onHome }) {
               polygonLabel={showNames ? (p => `<b>${p.properties?.name || ''}</b>`) : null}
               onPolygonClick={p => handleGuess(p.properties?.cca3)}
               onGlobeClick={handleMissClick}
-              htmlElementsData={popupElements}
-              htmlLat={d => d.lat}
-              htmlLng={d => d.lng}
-              htmlAltitude={0.02}
-              htmlElement={renderPopupElement}
-              htmlTransitionDuration={300}
               enableAutoRotate={false}
               atmosphereColor="#38bdf8"
               atmosphereAltitude={0.15}
             />
+            {popup && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: popupPosition.x,
+                  top: popupPosition.y,
+                  zIndex: 10,
+                  pointerEvents: 'auto',
+                  userSelect: 'none',
+                }}
+                onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
+              >
+                {renderPopupElement(popup)}
+              </div>
+            )}
           </div>
 
           <div style={{ marginTop: '16px', fontSize: '18px', fontWeight: 'bold' }}>
