@@ -19,6 +19,7 @@ function FindCountryGame({ onHome }) {
   // per-round state
   const [tried, setTried] = useState([]);
   const [lastHint, setLastHint] = useState(null);
+  const [popup, setPopup] = useState(null);
   const [showBorders, setShowBorders] = useState(false);
   const [showNames, setShowNames] = useState(false);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
@@ -103,6 +104,7 @@ function FindCountryGame({ onHome }) {
     setPhase('playing');
     setTried([]);
     setLastHint(null);
+    setPopup(null);
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
     }
@@ -157,10 +159,43 @@ function FindCountryGame({ onHome }) {
     if (phase === 'playing') {
       setTried([]);
       setLastHint(null);
+      setPopup(null);
     }
   }, [roundKey]);
 
-  const handleWin = () => {
+  const getArrowEmoji = (dir) => {
+    const arrows = { N: "⬆️", NE: "↗️", E: "➡️", SE: "↘️", S: "⬇️", SW: "↙️", W: "⬅️", NW: "↖️" };
+    return arrows[dir] || dir;
+  };
+
+  const popupElements = useMemo(() => (popup ? [popup] : []), [popup]);
+
+  const renderPopupElement = useCallback((d) => {
+    const el = document.createElement('div');
+    el.style.pointerEvents = 'none';
+    el.style.transform = 'translateY(-140%)';
+    el.style.background = '#1a202c';
+    el.style.border = '1px solid #4a5568';
+    el.style.borderLeft = `6px solid ${d.isWin ? '#22c55e' : d.color}`;
+    el.style.borderRadius = '8px';
+    el.style.padding = '6px 10px';
+    el.style.fontSize = '12px';
+    el.style.lineHeight = '1.3';
+    el.style.color = 'white';
+    el.style.whiteSpace = 'nowrap';
+    el.style.boxShadow = '0 4px 14px rgba(0,0,0,0.5)';
+    el.style.textAlign = 'left';
+    const title = d.isWin ? `🎉 ${d.name}!` : d.name;
+    const subtitle = d.isWin
+      ? 'Correct!'
+      : `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`;
+    el.innerHTML = `<div style="font-weight:bold;display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:${d.isWin ? '#22c55e' : d.color};display:inline-block;flex-shrink:0;"></span><span></span></div><div style="color:${d.isWin ? '#68d391' : d.color};font-weight:bold;margin-top:2px;"></div>`;
+    el.firstChild.lastChild.textContent = title;
+    el.lastChild.textContent = subtitle;
+    return el;
+  }, []);
+
+  const handleWin = (winCca3) => {
     const newGuesses = guessCount + 1;
     setGuessCount(newGuesses);
     const entry = {
@@ -177,6 +212,15 @@ function FindCountryGame({ onHome }) {
     setFailed(false);
     setFailReason(null);
     setLastHint(null);
+    const winFeature = features.find(f => f.properties.cca3 === (winCca3 || target?.properties?.cca3));
+    const [wLat, wLng] = winFeature?.properties?.latlng || target?.properties?.latlng || [0, 0];
+    setPopup({
+      cca3: winCca3 || target?.properties?.cca3,
+      name: winFeature?.properties?.name || getTargetName(),
+      lat: wLat,
+      lng: wLng,
+      isWin: true,
+    });
     clearTimer();
   };
 
@@ -187,7 +231,7 @@ function FindCountryGame({ onHome }) {
     if (config && config.maxGuesses != null && guessCount >= config.maxGuesses) return;
 
     if (cca3 === target.properties.cca3) {
-      handleWin();
+      handleWin(cca3);
       return;
     }
 
@@ -210,6 +254,7 @@ function FindCountryGame({ onHome }) {
 
     setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
     setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
+    setPopup({ cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false });
 
     if (config && config.maxGuesses != null && newGuesses >= config.maxGuesses) {
       const entry = {
@@ -244,6 +289,7 @@ function FindCountryGame({ onHome }) {
     setRoundOver(true);
     setFailed(true);
     setFailReason('Skipped —');
+    setPopup(null);
     clearTimer();
   };
 
@@ -263,6 +309,7 @@ function FindCountryGame({ onHome }) {
     setFailReason(null);
     setTried([]);
     setLastHint(null);
+    setPopup(null);
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
     }
@@ -286,6 +333,7 @@ function FindCountryGame({ onHome }) {
     setPhase('playing');
     setTried([]);
     setLastHint(null);
+    setPopup(null);
     pickNextTarget();
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
@@ -301,6 +349,7 @@ function FindCountryGame({ onHome }) {
     setFailReason(null);
     setTried([]);
     setLastHint(null);
+    setPopup(null);
   };
 
   const focusCountry = ({ lat, lng }) => {
@@ -339,11 +388,6 @@ function FindCountryGame({ onHome }) {
         };
       });
   }, [worldPolygons, tried, roundOver, target]);
-
-  const getArrowEmoji = (dir) => {
-    const arrows = { N: "⬆️", NE: "↗️", E: "➡️", SE: "↘️", S: "⬇️", SW: "↙️", W: "⬅️", NW: "↖️" };
-    return arrows[dir] || dir;
-  };
 
   const formatTime = (s) => {
     if (s == null) return '—';
@@ -482,6 +526,12 @@ function FindCountryGame({ onHome }) {
               polygonLabel={showNames ? (p => `<b>${p.properties?.name || ''}</b>`) : null}
               onPolygonClick={p => handleGuess(p.properties?.cca3)}
               onGlobeClick={handleMissClick}
+              htmlElementsData={popupElements}
+              htmlLat={d => d.lat}
+              htmlLng={d => d.lng}
+              htmlAltitude={0.02}
+              htmlElement={renderPopupElement}
+              htmlTransitionDuration={300}
               enableAutoRotate={false}
               atmosphereColor="#38bdf8"
               atmosphereAltitude={0.15}
