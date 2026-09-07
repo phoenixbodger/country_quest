@@ -7,7 +7,7 @@ import CountryQuestSetup from './CountryQuestModes/CountryQuestSetup';
 import CountryQuestStats from './CountryQuestModes/CountryQuestStats';
 import { buildCapitalIndex } from '../utils/capitalHelpers';
 
-// Stages: silhouette -> capital (auto-advance 2s) -> flag -> quest complete
+// Stages: silhouette -> capital -> flag -> quest complete (manual advance)
 const STAGES = {
   SILHOUETTE: 'silhouette',
   CAPITAL: 'capital',
@@ -28,7 +28,24 @@ function CountryQuest({ onHome }) {
   const [silhouetteLive, setSilhouetteLive] = useState(0);
   const [capitalLive, setCapitalLive] = useState(0);
   const [flagLive, setFlagLive] = useState(0);
-  const advanceTimerRef = useRef(null);
+
+  // Inject pulse animation styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      @keyframes pulse-ring {
+        0% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(72, 187, 120, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   const capitalIndex = useMemo(() => {
     if (!countries.length) return { uniqueCapitals: [], capitalToCountries: new Map(), capitalLowerSet: new Set() };
@@ -68,12 +85,6 @@ function CountryQuest({ onHome }) {
   useEffect(() => { flagLiveRef.current = flagLive; }, [flagLive]);
   useEffect(() => { questOverRef.current = questOver; }, [questOver]);
 
-  const clearAdvanceTimer = () => {
-    if (advanceTimerRef.current) {
-      clearTimeout(advanceTimerRef.current);
-      advanceTimerRef.current = null;
-    }
-  };
   const clearSessionTimer = () => {
     if (sessionTimerRef.current) {
       clearInterval(sessionTimerRef.current);
@@ -147,7 +158,6 @@ function CountryQuest({ onHome }) {
       })
       .catch(err => console.error('Error loading countries:', err));
     return () => {
-      clearAdvanceTimer();
       clearSessionTimer();
     };
   }, []);
@@ -175,7 +185,6 @@ function CountryQuest({ onHome }) {
       setTargetCountry(next);
       console.log('Secret Target Country:', next.name.common);
     }
-    clearAdvanceTimer();
     clearSessionTimer();
   };
 
@@ -189,7 +198,6 @@ function CountryQuest({ onHome }) {
         if (prev == null) return prev;
         if (prev <= 1) {
           clearSessionTimer();
-          clearAdvanceTimer();
           const entry = buildHistoryEntry('incorrect', 'timeout');
           setHistory(h => [...h, entry]);
           setQuestOver(true);
@@ -216,7 +224,6 @@ function CountryQuest({ onHome }) {
     if (config && config.numGames != null && totalAfter >= config.numGames) {
       setPhase('summary');
       clearSessionTimer();
-      clearAdvanceTimer();
       return;
     }
     if (!countries.length || !validCca3Set.size) return;
@@ -239,7 +246,6 @@ function CountryQuest({ onHome }) {
 
   const handleSkipQuest = () => {
     if (questOver) return;
-    clearAdvanceTimer();
     clearSessionTimer();
     const entry = buildHistoryEntry('incorrect', 'skipped');
     setHistory(h => [...h, entry]);
@@ -250,7 +256,6 @@ function CountryQuest({ onHome }) {
 
   const handleEndGame = () => {
     clearSessionTimer();
-    clearAdvanceTimer();
     setPhase('summary');
   };
 
@@ -280,7 +285,6 @@ function CountryQuest({ onHome }) {
 
   const handleChangeSettings = () => {
     clearSessionTimer();
-    clearAdvanceTimer();
     setPhase('setup');
     setHistory([]);
     setQuestOver(false);
@@ -298,54 +302,29 @@ function CountryQuest({ onHome }) {
   const handleSilhouetteWon = (guessCount) => {
     setSilhouetteGuessCount(guessCount);
     setSilhouetteLive(guessCount);
-    if (questOver) return;
-    // Auto-advance to capital after 2s
-    clearAdvanceTimer();
-    advanceTimerRef.current = setTimeout(() => {
-      if (questOverRef.current) return;
-      setStage(STAGES.CAPITAL);
-      advanceTimerRef.current = null;
-    }, 2000);
   };
 
   const handleSkipToCapital = () => {
-    clearAdvanceTimer();
     setStage(STAGES.CAPITAL);
   };
 
   const handleCapitalWon = (guessCount) => {
     setCapitalGuessCount(guessCount);
     setCapitalLive(guessCount);
-    if (questOver) return;
-    clearAdvanceTimer();
-    advanceTimerRef.current = setTimeout(() => {
-      if (questOverRef.current) return;
-      setStage(STAGES.FLAG);
-      advanceTimerRef.current = null;
-    }, 2000);
   };
 
   const handleCapitalFailed = (guessCount) => {
     setCapitalGuessCount(guessCount);
     setCapitalLive(guessCount);
-    if (questOver) return;
-    clearAdvanceTimer();
-    advanceTimerRef.current = setTimeout(() => {
-      if (questOverRef.current) return;
-      setStage(STAGES.FLAG);
-      advanceTimerRef.current = null;
-    }, 2000);
   };
 
   const handleSkipToFlag = () => {
-    clearAdvanceTimer();
     setStage(STAGES.FLAG);
   };
 
   const handleFlagFailed = (flagGuesses) => {
     if (questOverRef.current) return;
     clearSessionTimer();
-    clearAdvanceTimer();
     // ensure breakdown captures the final flag guess count (5 of 6) even though state update is async
     flagLiveRef.current = flagGuesses;
     setFlagLive(flagGuesses);
@@ -364,7 +343,6 @@ function CountryQuest({ onHome }) {
     setFlagLive(guessCount);
     // Quest completed successfully
     clearSessionTimer();
-    clearAdvanceTimer();
     // Build correct entry
     const t = targetCountry;
     const s = silhouetteGuessCount || silhouetteLive;
@@ -537,18 +515,37 @@ function CountryQuest({ onHome }) {
           )}
 
           {/* Show completion state for silhouette already won but not yet advanced - handled inside components */}
-          {stage === STAGES.SILHOUETTE && (silhouetteGuessCount > 0 || silhouetteLive > 0) && !questOver && (
-            <div style={{ marginTop: '10px' }}>
+          {stage === STAGES.SILHOUETTE && silhouetteGuessCount > 0 && !questOver && (
+            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                background: 'rgba(72, 187, 120, 0.15)',
+                border: '1px solid #48bb78',
+                color: '#68d391',
+                fontSize: '13px',
+                fontWeight: 'bold',
+                animation: 'pulse 2s infinite',
+              }}>
+                <span style={{ fontSize: '14px' }}>✓</span>
+                Country found! Ready for capital stage
+              </div>
               <button
                 onClick={handleSkipToCapital}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  border: '1px solid #4a5568',
-                  background: '#2d3748',
-                  color: '#63b3ed',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#48bb78',
+                  color: 'white',
                   cursor: 'pointer',
-                  fontSize: '13px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 0 0 0 rgba(72, 187, 120, 0.7)',
+                  animation: 'pulse-ring 2s infinite',
                 }}
               >
                 Continue to capital now →
@@ -557,17 +554,36 @@ function CountryQuest({ onHome }) {
           )}
 
           {stage === STAGES.CAPITAL && (capitalGuessCount > 0) && !questOver && (
-            <div style={{ marginTop: '10px' }}>
+            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                background: 'rgba(72, 187, 120, 0.15)',
+                border: '1px solid #48bb78',
+                color: '#68d391',
+                fontSize: '13px',
+                fontWeight: 'bold',
+                animation: 'pulse 2s infinite',
+              }}>
+                <span style={{ fontSize: '14px' }}>✓</span>
+                Capital stage complete! Ready for flag stage
+              </div>
               <button
                 onClick={handleSkipToFlag}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  border: '1px solid #4a5568',
-                  background: '#2d3748',
-                  color: '#63b3ed',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#48bb78',
+                  color: 'white',
                   cursor: 'pointer',
-                  fontSize: '13px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 0 0 0 rgba(72, 187, 120, 0.7)',
+                  animation: 'pulse-ring 2s infinite',
                 }}
               >
                 Continue to flag now →
