@@ -379,7 +379,7 @@ function NameTheCapital({
       {sessionActive ? (
         sessionRoundOver ? (
           effectiveFailed ? (
-            <h2 style={{ color: '#fc8181' }}>❌ {sessionFailReason || 'Incorrect'} — The capital{totalCapitals>1?'s':''} of {target.name.common} {totalCapitals>1 ? `are ${target.capital.join(', ')}` : `is ${target.capital[0]}`} </h2>
+            <h2 style={{ color: '#fc8181' }}>❌ Incorrect! {totalCapitals > 1 ? `All capitals of ${target.name.common}: ${target.capital.join(', ')}` : `The capital of ${target.name.common} is ${target.capital[0]}`} ({effectiveGuesses} {effectiveGuesses === 1 ? 'guess' : 'guesses'})</h2>
           ) : (
             <h2 style={{ color: '#48bb78' }}>
               🎉 Correct! {totalCapitals > 1 ? `All capitals of ${target.name.common}: ${target.capital.join(', ')}` : `The capital of ${target.name.common} is ${target.capital[0]}`} ({effectiveGuesses} {effectiveGuesses === 1 ? 'guess' : 'guesses'}){sessionHintUsed ? ' — hint used' : ''}!
@@ -401,7 +401,7 @@ function NameTheCapital({
             🎉 Correct! {totalCapitals > 1 ? `All capitals of ${target.name.common}: ${target.capital.join(', ')}` : `The capital of ${target.name.common} is ${target.capital[0]}`} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!
           </h2>
         ) : gameFailed ? (
-          <h2 style={{ color: '#fc8181' }}>❌ All wrong choices selected — The capital{totalCapitals>1?'s':''} of {target.name.common} {totalCapitals>1 ? `are ${target.capital.join(', ')}` : `is ${target.capital[0]}`}</h2>
+          <h2 style={{ color: '#fc8181' }}>❌ Incorrect! {totalCapitals > 1 ? `All capitals of ${target.name.common}: ${target.capital.join(', ')}` : `The capital of ${target.name.common} is ${target.capital[0]}`} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})</h2>
         ) : isPartialWin ? (
           <div style={{ background: '#276749', padding: '14px 18px', borderRadius: '8px', marginBottom: '12px' }}>
             <div style={{ color: '#c6f6d5', fontWeight: 'bold', fontSize: '16px' }}>
