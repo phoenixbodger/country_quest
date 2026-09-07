@@ -43,6 +43,10 @@ function GuessCountryFromFlag({
   const [flagLoaded, setFlagLoaded] = useState(false);
   const [triedFlagErrors, setTriedFlagErrors] = useState(new Set());
   const [hintFlagErrors, setHintFlagErrors] = useState(new Set());
+  const [popup, setPopup] = useState(null);
+  const [popupPosition, setPopupPosition] = useState({ x: 20, y: 20 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
@@ -50,6 +54,8 @@ function GuessCountryFromFlag({
     setFlagLoaded(false);
     setTriedFlagErrors(new Set());
     setHintFlagErrors(new Set());
+    setPopup(null);
+    setPopupPosition({ x: 20, y: 20 });
   }, [target]);
 
   // Reset per-round state when target changes or session round key changes
@@ -67,6 +73,8 @@ function GuessCountryFromFlag({
       setFlagLoaded(false);
       setTriedFlagErrors(new Set());
       setHintFlagErrors(new Set());
+      setPopup(null);
+      setPopupPosition({ x: 20, y: 20 });
       if (globeRef.current) {
         globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
       }
@@ -102,6 +110,8 @@ function GuessCountryFromFlag({
     setFlagLoaded(false);
     setTriedFlagErrors(new Set());
     setHintFlagErrors(new Set());
+    setPopup(null);
+    setPopupPosition({ x: 20, y: 20 });
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
     }
@@ -126,6 +136,10 @@ function GuessCountryFromFlag({
       if (guessesExhausted) return;
       const isCorrect = cca3 === target.properties.cca3;
       if (isCorrect) {
+        const winFeat = features.find(f => f.properties.cca3 === cca3);
+        const winCountry = countries.find(c => c.cca3 === cca3);
+        const [wLat, wLng] = winCountry?.latlng || winFeat?.properties?.latlng || target.properties.latlng || [0, 0];
+        setPopup({ cca3, name: winFeat ? winFeat.properties.name : cca3, lat: wLat, lng: wLng, isWin: true, isTried: false });
         if (onSessionWin) onSessionWin(sessionHintUsed);
         setLastHint(null);
         setShowHint(false);
@@ -148,6 +162,7 @@ function GuessCountryFromFlag({
       const color = getProximityColor(distanceKm);
       setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
       setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
+      setPopup({ cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false, isTried: true });
       if (onSessionGuess) onSessionGuess(cca3, false);
       return;
     }
@@ -155,6 +170,10 @@ function GuessCountryFromFlag({
     if (gameWon || tried.some(t => t.cca3 === cca3)) return;
     setGuessCount(n => n + 1);
     if (cca3 === target.properties.cca3) {
+      const winFeat = features.find(f => f.properties.cca3 === cca3);
+      const winCountry = countries.find(c => c.cca3 === cca3);
+      const [wLat, wLng] = winCountry?.latlng || winFeat?.properties?.latlng || target.properties.latlng || [0, 0];
+      setPopup({ cca3, name: winFeat ? winFeat.properties.name : cca3, lat: wLat, lng: wLng, isWin: true, isTried: false });
       setGameWon(true);
       setLastHint(null);
       setShowHint(false);
@@ -176,6 +195,7 @@ function GuessCountryFromFlag({
     const color = getProximityColor(distanceKm);
     setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
     setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
+    setPopup({ cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false, isTried: true });
   };
 
   const handleSubmitCountry = (country) => {
@@ -199,23 +219,199 @@ function GuessCountryFromFlag({
     }
   };
 
-  const handlePolygonClick = (polygon) => {
-    if (sessionActive && sessionRoundOver) return;
-    const cca3 = polygon.properties?.cca3;
-    if (!cca3) return;
+  const resetPopupPosition = React.useCallback(() => {
+    setPopupPosition({ x: 20, y: 20 });
+  }, []);
+
+  const handleDragStart = React.useCallback((clientX, clientY) => {
+    setIsDragging(true);
+    setDragOffset({ x: clientX - popupPosition.x, y: clientY - popupPosition.y });
+  }, [popupPosition]);
+
+  const handleDragMove = React.useCallback((clientX, clientY) => {
+    if (!isDragging) return;
+    const newX = clientX - dragOffset.x;
+    const newY = clientY - dragOffset.y;
+    const maxX = window.innerWidth - 300;
+    const maxY = window.innerHeight - 150;
+    setPopupPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY)),
+    });
+  }, [isDragging, dragOffset]);
+
+  const handleDragEnd = React.useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleMouseDown = React.useCallback((e) => {
+    if (e.button !== 0) return;
+    handleDragStart(e.clientX, e.clientY);
+  }, [handleDragStart]);
+
+  const handleTouchStart = React.useCallback((e) => {
+    const touch = e.touches[0];
+    handleDragStart(touch.clientX, touch.clientY);
+  }, [handleDragStart]);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => handleDragMove(e.clientX, e.clientY);
+    const handleMouseUp = () => handleDragEnd();
+    const handleTouchMove = (e) => {
+      const touch = e.touches[0];
+      handleDragMove(touch.clientX, touch.clientY);
+    };
+    const handleTouchEnd = () => handleDragEnd();
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: true });
+      window.addEventListener('touchend', handleTouchEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
+
+  const handlePopupConfirm = React.useCallback(() => {
+    if (!popup) return;
+    const cca3 = popup.cca3;
+    if (tried.some(t => t.cca3 === cca3)) return;
+    if (sessionActive ? sessionRoundOver : gameWon) return;
+    if (guessesExhausted) return;
+    handleGuessByCca3(cca3);
+  }, [popup, tried, sessionActive, sessionRoundOver, gameWon, guessesExhausted, handleGuessByCca3]);
+
+  const renderPopupElement = React.useCallback((d) => {
+    if (!d) return null;
+    const isWin = !!d.isWin;
+    const isTried = !!d.isTried;
+    const title = isWin ? `🎉 ${d.name}!` : d.name;
+    const subtitle = isWin
+      ? 'Correct!'
+      : isTried
+        ? `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`
+        : 'Selected — confirm your guess';
+    const accentColor = isWin ? '#22c55e' : (d.color || '#3182ce');
+    const textColor = isWin ? '#68d391' : (d.color || '#a0aec0');
+    const canConfirm = !isWin && !isTried && !isInputDisabled && !guessesExhausted;
+    return (
+      <div
+        style={{
+          background: '#1a202c',
+          border: '1px solid #4a5568',
+          borderLeft: `6px solid ${accentColor}`,
+          borderRadius: '8px',
+          padding: '10px 12px',
+          fontSize: '13px',
+          lineHeight: '1.4',
+          color: 'white',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+          textAlign: 'left',
+          minWidth: '240px',
+          cursor: 'move',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: accentColor, display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{title}</span>
+            {d.cca3 && (
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#a0aec0', background: '#2d3748', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.5px' }}>{d.cca3}</span>
+            )}
+          </div>
+          <button
+            onClick={resetPopupPosition}
+            style={{ background: 'transparent', border: 'none', color: '#a0aec0', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: '2px 6px', borderRadius: '4px', opacity: 0.7 }}
+            title="Reset position"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
+            ↻
+          </button>
+        </div>
+        <div style={{ color: textColor, fontWeight: 'bold', marginTop: '6px' }}>{subtitle}</div>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+          {!isWin && !isTried && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handlePopupConfirm(); }}
+              disabled={!canConfirm}
+              style={{
+                flex: 1,
+                padding: '7px 10px',
+                borderRadius: '6px',
+                border: 'none',
+                background: canConfirm ? '#3182ce' : '#4a5568',
+                color: 'white',
+                cursor: canConfirm ? 'pointer' : 'not-allowed',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
+              Guess {d.name}
+            </button>
+          )}
+          {isTried && (
+            <div style={{ flex: 1, padding: '7px 10px', borderRadius: '6px', background: '#2d3748', color: '#a0aec0', fontWeight: 'bold', fontSize: '13px', textAlign: 'center' }}>
+              Already guessed ✗
+            </div>
+          )}
+          {isWin && (
+            <div style={{ flex: 1, padding: '7px 10px', borderRadius: '6px', background: 'rgba(34,197,94,0.15)', border: '1px solid #22c55e', color: '#68d391', fontWeight: 'bold', fontSize: '13px', textAlign: 'center' }}>
+              Correct!
+            </div>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setPopup(null); }}
+            style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #4a5568', background: '#2d3748', color: '#a0aec0', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }, [resetPopupPosition, isInputDisabled, guessesExhausted, handlePopupConfirm]);
+
+  const showPopupForCca3 = (cca3) => {
     const feat = features.find(f => f.properties.cca3 === cca3);
     if (!feat) return;
+    const countryObj = countries.find(c => c.cca3 === cca3);
+    const existing = tried.find(t => t.cca3 === cca3);
+    if (existing) {
+      setPopup({ cca3, name: existing.name, lat: existing.lat, lng: existing.lng, distanceKm: existing.distanceKm, direction: existing.direction, color: existing.color, isWin: false, isTried: true });
+    } else {
+      const [lat, lng] = countryObj?.latlng || feat.properties.latlng || [0, 0];
+      const isWinCandidate = cca3 === target?.properties?.cca3;
+      if (isWinCandidate && (sessionActive ? sessionRoundOver && !sessionFailed : gameWon)) {
+        setPopup({ cca3, name: feat.properties.name, lat, lng, isWin: true, isTried: false });
+      } else {
+        setPopup({ cca3, name: feat.properties.name, lat, lng, isWin: false, isTried: false });
+      }
+    }
     setGuessValue(feat.properties.name);
+  };
+
+  const handlePolygonClick = (polygon) => {
+    if (sessionActive && sessionRoundOver) return;
+    if (sessionActive ? sessionRoundOver : gameWon) return;
+    if (guessesExhausted) return;
+    const cca3 = polygon.properties?.cca3;
+    if (!cca3) return;
+    showPopupForCca3(cca3);
   };
 
   const handleMissClick = ({ lat, lng }) => {
     if (sessionActive ? sessionRoundOver : gameWon) return;
+    if (guessesExhausted) return;
     const altitude = globeRef.current?.pointOfView()?.altitude ?? 2.5;
     const toleranceKm = Math.min(600, Math.max(20, altitude * 200));
     const nearest = findNearestCountry(countryIndex, lat, lng);
     if (nearest && nearest.distanceKm <= toleranceKm) {
-      const feat = features.find(f => f.properties.cca3 === nearest.cca3);
-      if (feat) setGuessValue(feat.properties.name);
+      showPopupForCca3(nearest.cca3);
     }
   };
 
@@ -333,12 +529,12 @@ function GuessCountryFromFlag({
           )}
         </div>
         <div style={{ marginTop: '10px', color: '#a0aec0', fontSize: '14px' }}>
-          Guess the country — type or click the globe to fill the box. Wrong guesses show distance & direction.
+          Guess the country — click the globe to select, then confirm. Wrong guesses show distance & direction in the popup.
         </div>
       </div>
 
       <p style={{ color: '#a0aec0', marginBottom: '10px', fontSize: '14px' }}>
-        Rotate and click the globe to put a country in the guess box. Toggle borders and persistent country names below — names stay on the globe so islands are easier to find. Scroll to zoom — small islands get bigger and easier to click.
+        Rotate and click the globe to select a country — a popup lets you confirm. Toggle borders and persistent country names below — names stay on the globe so islands are easier to find. Scroll to zoom — small islands get bigger and easier to click.
       </p>
 
       <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '10px' }}>
@@ -352,7 +548,7 @@ function GuessCountryFromFlag({
         </label>
       </div>
 
-      <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px' }}>
+      <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px', position: 'relative' }}>
         <Globe
           ref={globeRef}
           width={globeSize}
@@ -387,8 +583,9 @@ function GuessCountryFromFlag({
             el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
             el.textContent = d.text;
             el.addEventListener('click', () => {
-              const feat = features.find(f => f.properties?.cca3 === d.cca3);
-              if (feat) setGuessValue(feat.properties.name);
+              if (sessionActive ? sessionRoundOver : gameWon) return;
+              if (guessesExhausted) return;
+              showPopupForCca3(d.cca3);
             });
             return el;
           }}
@@ -396,6 +593,22 @@ function GuessCountryFromFlag({
           atmosphereColor="#38bdf8"
           atmosphereAltitude={0.15}
         />
+        {popup && (
+          <div
+            style={{
+              position: 'absolute',
+              left: popupPosition.x,
+              top: popupPosition.y,
+              zIndex: 10,
+              pointerEvents: 'auto',
+              userSelect: 'none',
+            }}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+          >
+            {renderPopupElement(popup)}
+          </div>
+        )}
       </div>
 
       <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit(); }} style={{ marginBottom: '12px' }}>
@@ -582,7 +795,10 @@ function GuessCountryFromFlag({
             {[...tried].reverse().map(t => (
               <button
                 key={t.cca3}
-                onClick={() => focusCountry(t)}
+                onClick={() => {
+                  focusCountry(t);
+                  setPopup({ cca3: t.cca3, name: t.name, lat: t.lat, lng: t.lng, distanceKm: t.distanceKm, direction: t.direction, color: t.color, isWin: false, isTried: true });
+                }}
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
