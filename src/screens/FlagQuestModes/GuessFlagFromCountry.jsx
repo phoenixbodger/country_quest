@@ -13,6 +13,7 @@ function GuessFlagFromCountry({
   sessionMaxGuesses = null,
   onSessionGuess = null,
   onSessionWin = null,
+  onSessionFail = null,
   sessionRoundOver = false,
   sessionFailed = false,
   sessionFailReason = null,
@@ -20,6 +21,7 @@ function GuessFlagFromCountry({
 }) {
   const [guessCount, setGuessCount] = useState(0);
   const [gameWon, setGameWon] = useState(false);
+  const [gameFailed, setGameFailed] = useState(false);
   const [options, setOptions] = useState([]);
   const [tried, setTried] = useState(new Set());
   const [hintReveal, setHintReveal] = useState(null); // { correct: {cca3,name,flag}, others: [{cca3,name,flag}] }
@@ -52,6 +54,7 @@ function GuessFlagFromCountry({
       if (!sessionActive) {
         setGuessCount(0);
         setGameWon(false);
+        setGameFailed(false);
       }
     }
   }, [target, countries, numChoices]);
@@ -64,6 +67,7 @@ function GuessFlagFromCountry({
       setFlagErrors(new Set());
       setRevealFlagErrors(new Set());
       setGameWon(false);
+      setGameFailed(false);
       // options rebuilt via above effect but also ensure rebuild on roundKey
       if (target) setOptions(buildOptions(target));
     }
@@ -87,6 +91,7 @@ function GuessFlagFromCountry({
   const newGame = () => {
     setGuessCount(0);
     setGameWon(false);
+    setGameFailed(false);
     setTried(new Set());
     setHintReveal(null);
     setFlagErrors(new Set());
@@ -112,16 +117,23 @@ function GuessFlagFromCountry({
           .map(o => ({ cca3: o.cca3, name: o.name, flag: o.flag }));
         setHintReveal({ correct: opt, others });
       } else {
+        const willExhaust = tried.size + 1 >= options.length - 1 && options.length > 1;
         setTried(prev => {
           const ns = new Set(prev);
           ns.add(cca3);
           return ns;
         });
-        if (onSessionGuess) onSessionGuess(cca3, false);
+        if (willExhaust) {
+          if (onSessionFail) onSessionFail();
+          else if (onSessionGuess) onSessionGuess(cca3, false);
+        } else {
+          if (onSessionGuess) onSessionGuess(cca3, false);
+        }
       }
       return;
     }
-    if (tried.has(cca3) || gameWon) return;
+    if (tried.has(cca3) || gameWon || gameFailed) return;
+    const willExhaustNonSession = tried.size + 1 >= options.length - 1 && options.length > 1;
     setGuessCount(n => n + 1);
     if (cca3 === target.cca3) {
       // Correct - build reveal for other 5
@@ -136,6 +148,12 @@ function GuessFlagFromCountry({
         ns.add(cca3);
         return ns;
       });
+      if (willExhaustNonSession) {
+        const correctOpt = options.find(o => o.cca3 === target.cca3) || { cca3: target.cca3, name: target.name.common, flag: target.flag };
+        const others = options.filter(o => o.cca3 !== target.cca3).map(o => ({ cca3: o.cca3, name: o.name, flag: o.flag }));
+        setHintReveal({ correct: correctOpt, others });
+        setGameFailed(true);
+      }
     }
   };
 
@@ -143,9 +161,9 @@ function GuessFlagFromCountry({
 
   const effectiveGuessCount = sessionActive ? sessionGuessCount : guessCount;
   const effectiveWon = sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon;
-  const effectiveFailed = sessionActive ? sessionFailed : false;
+  const effectiveFailed = sessionActive ? sessionFailed : gameFailed;
   const guessesExhausted = sessionActive && sessionMaxGuesses != null && sessionGuessCount >= sessionMaxGuesses;
-  const disabledAll = sessionActive ? (sessionRoundOver || guessesExhausted) : gameWon;
+  const disabledAll = sessionActive ? (sessionRoundOver || guessesExhausted) : (gameWon || gameFailed);
 
   return (
     <div>
@@ -182,6 +200,8 @@ function GuessFlagFromCountry({
           <h2 style={{ color: '#48bb78' }}>
             🎉 Correct! The flag of {target.name.common} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!
           </h2>
+        ) : gameFailed ? (
+          <h2 style={{ color: '#fc8181' }}>❌ All wrong choices selected — The flag of {target.name.common}</h2>
         ) : (
           <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '12px' }}>
             Pick the correct flag — wrong guesses will be disabled.
@@ -259,7 +279,7 @@ function GuessFlagFromCountry({
       )}
 
       {!disabledAll || (sessionActive && !sessionRoundOver) ? (
-        (!sessionActive && !gameWon) || (sessionActive && !sessionRoundOver) ? (
+        (!sessionActive && !gameWon && !gameFailed) || (sessionActive && !sessionRoundOver) ? (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -334,11 +354,11 @@ function GuessFlagFromCountry({
         {sessionActive ? (
           sessionRoundOver ? `Finished in ${effectiveGuessCount} ${effectiveGuessCount === 1 ? 'guess' : 'guesses'}` : `Guesses: ${effectiveGuessCount}${sessionMaxGuesses != null ? ` / ${sessionMaxGuesses}` : ''} • Pick a flag above`
         ) : (
-          gameWon ? `Finished in ${guessCount} ${guessCount === 1 ? 'guess' : 'guesses'}` : `Guesses: ${guessCount} • Pick a flag above`
+          gameWon ? `Finished in ${guessCount} ${guessCount === 1 ? 'guess' : 'guesses'}` : gameFailed ? `Failed — the flag of ${target.name.common} • ${guessCount} ${guessCount === 1 ? 'guess' : 'guesses'}` : `Guesses: ${guessCount} • Pick a flag above`
         )}
       </div>
 
-      {!sessionActive && gameWon && (
+      {!sessionActive && (gameWon || gameFailed) && (
         <button
           onClick={newGame}
           style={{
