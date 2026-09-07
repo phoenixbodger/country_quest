@@ -5,7 +5,8 @@ function FlagQuestStats({ stats, config, mode, onReplaySame, onChangeSettings, o
   const correct = stats.correct;
   const correctHint = stats.correctWithHint;
   const incorrect = stats.incorrect;
-  const correctTotal = correct + correctHint;
+  const isFlagMode = mode === 'flag';
+  const correctTotal = isFlagMode ? correct : correct + correctHint;
 
   const avgGuesses = total ? (stats.history.reduce((s, h) => s + h.guesses, 0) / total).toFixed(1) : '—';
 
@@ -23,17 +24,19 @@ function FlagQuestStats({ stats, config, mode, onReplaySame, onChangeSettings, o
           {mode === 'flag' && config.numChoices != null ? ` • ${config.numChoices} choices` : ''}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isFlagMode ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
           <div style={{ background: '#2d3748', borderRadius: '8px', padding: '12px' }}>
             <div style={{ fontSize: '12px', color: '#a0aec0' }}>Correct</div>
-            <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#48bb78' }}>{correct}</div>
-            <div style={{ fontSize: '12px', color: '#68d391' }}>without hint</div>
+            <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#48bb78' }}>{isFlagMode ? correctTotal : correct}</div>
+            {!isFlagMode && <div style={{ fontSize: '12px', color: '#68d391' }}>without hint</div>}
           </div>
-          <div style={{ background: '#2d3748', borderRadius: '8px', padding: '12px' }}>
-            <div style={{ fontSize: '12px', color: '#a0aec0' }}>Correct</div>
-            <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#63b3ed' }}>{correctHint}</div>
-            <div style={{ fontSize: '12px', color: '#63b3ed' }}>hint used</div>
-          </div>
+          {!isFlagMode && (
+            <div style={{ background: '#2d3748', borderRadius: '8px', padding: '12px' }}>
+              <div style={{ fontSize: '12px', color: '#a0aec0' }}>Correct</div>
+              <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#63b3ed' }}>{correctHint}</div>
+              <div style={{ fontSize: '12px', color: '#63b3ed' }}>hint used</div>
+            </div>
+          )}
           <div style={{ background: '#2d3748', borderRadius: '8px', padding: '12px' }}>
             <div style={{ fontSize: '12px', color: '#a0aec0' }}>Incorrect</div>
             <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#fc8181' }}>{incorrect}</div>
@@ -66,7 +69,10 @@ function FlagQuestStats({ stats, config, mode, onReplaySame, onChangeSettings, o
                 let resultLabel = '';
                 let resultColor = '';
                 if (h.result === 'correct') { resultLabel = 'Correct'; resultColor = '#48bb78'; }
-                else if (h.result === 'correct_hint') { resultLabel = 'Correct (hint used)'; resultColor = '#63b3ed'; }
+                else if (h.result === 'correct_hint') {
+                  if (isFlagMode) { resultLabel = 'Correct'; resultColor = '#48bb78'; }
+                  else { resultLabel = 'Correct (hint used)'; resultColor = '#63b3ed'; }
+                }
                 else { resultLabel = 'Incorrect'; resultColor = '#fc8181'; }
                 return (
                   <tr key={i} style={{ borderBottom: '1px solid #2d3748', color: '#e2e8f0' }}>

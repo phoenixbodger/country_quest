@@ -382,9 +382,9 @@ function FlagQuest({ onHome }) {
             <span style={{ color: config.timeLimitSec != null && timeLeft != null && timeLeft <= 10 ? '#fc8181' : '#a0aec0', fontWeight: config.timeLimitSec != null ? 'bold' : 'normal' }}>
               ⏱ {config.timeLimitSec == null ? 'No timer' : formatTime(timeLeft)}
             </span>
-            {hintUsed && <><span style={{ color: '#4a5568' }}>|</span><span style={{ color: '#63b3ed' }}>hint used</span></>}
+            {mode === 'country' && hintUsed && <><span style={{ color: '#4a5568' }}>|</span><span style={{ color: '#63b3ed' }}>hint used</span></>}
             <span style={{ color: '#4a5568' }}>|</span>
-            <span style={{ color: '#68d391' }}>✔ {stats.correct + stats.correctWithHint}</span>
+            <span style={{ color: '#68d391' }}>✔ {mode === 'flag' ? stats.correct : stats.correct + stats.correctWithHint}</span>
             <span style={{ color: '#fc8181' }}>✘ {stats.incorrect}</span>
           </div>
 
