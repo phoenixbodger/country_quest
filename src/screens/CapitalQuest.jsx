@@ -436,7 +436,7 @@ function CapitalQuest({ onHome }) {
           ) : (
             <NameTheCountry
               countries={countries}
-              features={filteredFeatures}
+              features={features}
               worldPolygons={worldPolygons}
               target={targetCountryFeature}
               setTarget={setTargetCountryFeature}

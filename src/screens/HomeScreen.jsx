@@ -43,7 +43,7 @@ function HomeScreen({ onSelect }) {
     <div style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
       <h1 style={{ fontSize: '42px', marginBottom: '8px' }}>🌍 Country Quest</h1>
       <p style={{ color: '#a0aec0', fontSize: '18px', marginBottom: '16px' }}>
-        Pick a game to play
+        Please pick a game to play
       </p>
       <button
         onClick={() => onSelect('howtoplay')}
