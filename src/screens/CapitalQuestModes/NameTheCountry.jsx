@@ -21,6 +21,7 @@ function NameTheCountry({
   onSessionHintUsed = null,
   onSessionGuess = null,
   onSessionWin = null,
+  onSessionFail = null,
   sessionRoundOver = false,
   sessionFailed = false,
   sessionFailReason = null,
@@ -33,6 +34,7 @@ function NameTheCountry({
   const [tried, setTried] = useState([]);
   const [guessCount, setGuessCount] = useState(0);
   const [gameWon, setGameWon] = useState(false);
+  const [gameFailed, setGameFailed] = useState(false);
   const [lastHint, setLastHint] = useState(null);
   const [showBorders, setShowBorders] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
@@ -59,6 +61,7 @@ function NameTheCountry({
       setTried([]);
       setGuessCount(0);
       setGameWon(false);
+      setGameFailed(false);
       setLastHint(null);
       setShowHint(false);
       setHintOptions([]);
@@ -78,6 +81,7 @@ function NameTheCountry({
     setTried([]);
     setGuessCount(0);
     setGameWon(false);
+    setGameFailed(false);
     setLastHint(null);
     setShowHint(false);
     setHintOptions([]);
@@ -94,10 +98,10 @@ function NameTheCountry({
   };
 
   const effectiveWon = sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon;
-  const effectiveFailed = sessionActive ? sessionFailed : false;
+  const effectiveFailed = sessionActive ? sessionFailed : gameFailed;
   const effectiveGuesses = sessionActive ? sessionGuessCount : guessCount;
   const guessesExhausted = sessionActive && sessionMaxGuesses != null && sessionGuessCount >= sessionMaxGuesses;
-  const isInputDisabled = sessionActive ? (sessionRoundOver || guessesExhausted) : gameWon;
+  const isInputDisabled = sessionActive ? (sessionRoundOver || guessesExhausted) : (gameWon || gameFailed);
 
   const handleGuessByCca3 = (cca3) => {
     if (sessionActive) {
@@ -254,28 +258,59 @@ function NameTheCountry({
         setShowHint(false);
         setLastHint(null);
       } else {
-        handleGuessByCca3(cca3);
-        setHintTried(prev => {
-          const ns = new Set(prev);
-          ns.add(cca3);
-          return ns;
-        });
+        const willExhaust = hintTried.size + 1 >= hintOptions.length - 1 && hintOptions.length > 1;
+        if (willExhaust) {
+          const clicked = features.find(f => f.properties.cca3 === cca3);
+          const targetCountry = countries.find(c => c.cca3 === target.properties.cca3);
+          const clickedCountry = countries.find(c => c.cca3 === cca3);
+          const [tLat, tLng] = targetCountry?.latlng || target.properties.latlng;
+          const [cLat, cLng] = clickedCountry?.latlng || clicked?.properties?.latlng || [0, 0];
+          const distanceKm = Math.round(getDistance(
+            { latitude: cLat, longitude: cLng },
+            { latitude: tLat, longitude: tLng }
+          ) / 1000);
+          const direction = getCompassDirection(
+            { latitude: cLat, longitude: cLng },
+            { latitude: tLat, longitude: tLng }
+          );
+          const color = getProximityColor(distanceKm);
+          setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
+          setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
+          setHintTried(prev => {
+            const ns = new Set(prev);
+            ns.add(cca3);
+            return ns;
+          });
+          if (onSessionFail) onSessionFail();
+          else if (onSessionGuess) onSessionGuess(cca3, false);
+        } else {
+          handleGuessByCca3(cca3);
+          setHintTried(prev => {
+            const ns = new Set(prev);
+            ns.add(cca3);
+            return ns;
+          });
+        }
       }
       return;
     }
-    if (hintTried.has(cca3) || gameWon) return;
+    if (hintTried.has(cca3) || gameWon || gameFailed) return;
     if (cca3 === target.properties.cca3) {
       setGuessCount(n => n + 1);
       setGameWon(true);
       setShowHint(false);
       setLastHint(null);
     } else {
+      const willExhaustNonSession = hintTried.size + 1 >= hintOptions.length - 1 && hintOptions.length > 1;
       handleGuessByCca3(cca3);
       setHintTried(prev => {
         const ns = new Set(prev);
         ns.add(cca3);
         return ns;
       });
+      if (willExhaustNonSession) {
+        setGameFailed(true);
+      }
     }
   };
 
@@ -418,7 +453,7 @@ function NameTheCountry({
           </button>
         )
       ) : (
-        !gameWon && !showHint && (
+        !gameWon && !gameFailed && !showHint && (
           <button
             onClick={openHint}
             style={{
@@ -437,7 +472,7 @@ function NameTheCountry({
           </button>
         )
       )}
-      {showHint && !(sessionActive ? sessionRoundOver : gameWon) && !guessesExhausted && (
+      {showHint && !(sessionActive ? sessionRoundOver : (gameWon || gameFailed)) && !guessesExhausted && (
         <div style={{ marginBottom: '16px' }}>
           <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '6px' }}>Pick the country for capital {capitalDisplay}:</div>
           <HintChoices
@@ -445,7 +480,7 @@ function NameTheCountry({
             correct={target.properties.cca3}
             triedSet={hintTried}
             onPick={handleHintPick}
-            disabled={sessionActive ? sessionRoundOver || guessesExhausted : gameWon}
+            disabled={sessionActive ? sessionRoundOver || guessesExhausted : (gameWon || gameFailed)}
           />
           <button
             onClick={() => setShowHint(false)}
@@ -457,7 +492,7 @@ function NameTheCountry({
       )}
 
       {/* At end of round, if hint was used, show all hint choices with answers */}
-      {((sessionActive ? sessionRoundOver : gameWon) && hintOptions.length > 0 && (sessionActive ? sessionHintUsed : true)) && (
+      {((sessionActive ? sessionRoundOver : (gameWon || gameFailed)) && hintOptions.length > 0 && (sessionActive ? sessionHintUsed : true)) && (
         <div style={{
           background: '#1a202c',
           border: '1px solid #4a5568',
@@ -512,13 +547,15 @@ function NameTheCountry({
         ) : (
           gameWon ? (
             <span style={{ color: '#48bb78' }}>🎉 Correct! It was {target.properties.name} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!</span>
+          ) : gameFailed ? (
+            <span style={{ color: '#fc8181' }}>❌ All wrong choices selected — The answer was {target.properties.name}{targetCountryObj?.flag ? ` ${targetCountryObj.flag}` : ''}</span>
           ) : (
             <span style={{ color: '#a0aec0' }}>Guesses: {guessCount}</span>
           )
         )}
       </div>
 
-      {!sessionActive && lastHint && !gameWon && (
+      {!sessionActive && lastHint && !gameWon && !gameFailed && (
         <div style={{ marginTop: '10px', color: '#f6ad55', fontSize: '16px' }}>{lastHint}</div>
       )}
       {sessionActive && lastHint && !sessionRoundOver && (
@@ -563,7 +600,7 @@ function NameTheCountry({
         </div>
       )}
 
-      {!sessionActive && gameWon && (
+      {!sessionActive && (gameWon || gameFailed) && (
         <button
           onClick={newGame}
           style={{
@@ -571,7 +608,7 @@ function NameTheCountry({
             padding: '10px 20px',
             borderRadius: '6px',
             border: 'none',
-            background: '#48bb78',
+            background: gameFailed ? '#4a5568' : '#48bb78',
             color: 'white',
             cursor: 'pointer',
             fontSize: '16px',

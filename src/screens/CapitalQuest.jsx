@@ -210,6 +210,26 @@ function CapitalQuest({ onHome }) {
     }
   };
 
+  const handleAllWrongSelected = useCallback(() => {
+    if (roundOver) return;
+    const newGuesses = guessCountRef.current + 1;
+    setGuessCount(newGuesses);
+    const entry = {
+      idx: historyRef.current.length + 1,
+      targetName: getTargetNameRef.current(),
+      cca3: getTargetCca3Ref.current(),
+      result: 'incorrect',
+      guesses: newGuesses,
+      hintUsed: hintUsedRef.current,
+      reason: 'all wrong choices selected',
+    };
+    setHistory(prev => [...prev, entry]);
+    setRoundOver(true);
+    setFailed(true);
+    setFailReason('All wrong choices selected —');
+    clearTimer();
+  }, [roundOver]);
+
   const handleSkip = () => {
     if (roundOver) return;
     const entry = {
@@ -407,6 +427,7 @@ function CapitalQuest({ onHome }) {
               onSessionHintUsed={() => setHintUsed(true)}
               onSessionGuess={handleWrongGuess}
               onSessionWin={handleWin}
+              onSessionFail={handleAllWrongSelected}
               sessionRoundOver={roundOver}
               sessionFailed={failed}
               sessionFailReason={failReason}
@@ -426,6 +447,7 @@ function CapitalQuest({ onHome }) {
               onSessionHintUsed={() => setHintUsed(true)}
               onSessionGuess={handleWrongGuess}
               onSessionWin={handleWin}
+              onSessionFail={handleAllWrongSelected}
               sessionRoundOver={roundOver}
               sessionFailed={failed}
               sessionFailReason={failReason}

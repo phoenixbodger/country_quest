@@ -17,6 +17,7 @@ function NameTheCapital({
   onSessionHintUsed = null,
   onSessionGuess = null,
   onSessionWin = null,
+  onSessionFail = null,
   sessionRoundOver = false,
   sessionFailed = false,
   sessionFailReason = null,
@@ -28,6 +29,7 @@ function NameTheCapital({
   const [guessCount, setGuessCount] = useState(0);
   const [foundCapitals, setFoundCapitals] = useState(new Set()); // normalized capitals found for this target
   const [gameFullyWon, setGameFullyWon] = useState(false);
+  const [gameFailed, setGameFailed] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
@@ -45,10 +47,10 @@ function NameTheCapital({
 
   // session derived
   const effectiveWon = sessionActive ? (sessionRoundOver && !sessionFailed) : gameFullyWon;
-  const effectiveFailed = sessionActive ? sessionFailed : false;
+  const effectiveFailed = sessionActive ? sessionFailed : gameFailed;
   const effectiveGuesses = sessionActive ? sessionGuessCount : guessCount;
   const guessesExhausted = sessionActive && sessionMaxGuesses != null && sessionGuessCount >= sessionMaxGuesses;
-  const isInputDisabled = sessionActive ? (sessionRoundOver || guessesExhausted) : gameFullyWon;
+  const isInputDisabled = sessionActive ? (sessionRoundOver || guessesExhausted) : (gameFullyWon || gameFailed);
 
   // Reset per-round state when session round changes
   useEffect(() => {
@@ -56,6 +58,7 @@ function NameTheCapital({
       setGuesses([]);
       setFoundCapitals(new Set());
       setGameFullyWon(false);
+      setGameFailed(false);
       setShowHint(false);
       setHintOptions([]);
       setHintTried(new Set());
@@ -69,6 +72,7 @@ function NameTheCapital({
     setGuessCount(0);
     setFoundCapitals(new Set());
     setGameFullyWon(false);
+    setGameFailed(false);
     setShowHint(false);
     setHintOptions([]);
     setHintTried(new Set());
@@ -227,27 +231,48 @@ function NameTheCapital({
       } else {
         // wrong via hint
         if (onSessionHintUsed && !sessionHintUsed) onSessionHintUsed();
-        // treat as wrong guess
-        const entry = capitalToCountries.get(lower);
-        let display;
-        if (entry) {
-          const names = joinCountryNames(entry.countries);
-          display = `${entry.capital} — capital of ${names}`;
+        const willExhaust = hintTried.size + 1 >= hintOptions.length - 1 && hintOptions.length > 1;
+        if (willExhaust) {
+          const entry = capitalToCountries.get(lower);
+          let display;
+          if (entry) {
+            const names = joinCountryNames(entry.countries);
+            display = `${entry.capital} — capital of ${names}`;
+          } else {
+            display = `${cap} — not a known capital`;
+          }
+          setGuesses(prev => [{ capital: entry?.capital || cap, display }, ...prev]);
+          setGuessValue('');
+          setHintTried(prev => {
+            const ns = new Set(prev);
+            ns.add(lower);
+            return ns;
+          });
+          if (onSessionFail) onSessionFail();
+          else if (onSessionGuess) onSessionGuess(lower, false);
         } else {
-          display = `${cap} — not a known capital`;
+          // treat as wrong guess
+          const entry = capitalToCountries.get(lower);
+          let display;
+          if (entry) {
+            const names = joinCountryNames(entry.countries);
+            display = `${entry.capital} — capital of ${names}`;
+          } else {
+            display = `${cap} — not a known capital`;
+          }
+          setGuesses(prev => [{ capital: entry?.capital || cap, display }, ...prev]);
+          setGuessValue('');
+          setHintTried(prev => {
+            const ns = new Set(prev);
+            ns.add(lower);
+            return ns;
+          });
+          if (onSessionGuess) onSessionGuess(lower, false);
         }
-        setGuesses(prev => [{ capital: entry?.capital || cap, display }, ...prev]);
-        setGuessValue('');
-        setHintTried(prev => {
-          const ns = new Set(prev);
-          ns.add(lower);
-          return ns;
-        });
-        if (onSessionGuess) onSessionGuess(lower, false);
       }
       return;
     }
-    if (hintTried.has(lower) || gameFullyWon) return;
+    if (hintTried.has(lower) || gameFullyWon || gameFailed) return;
     const targetLowers = (target.capital || []).map(normalizeCap);
     if (targetLowers.includes(lower)) {
       const others = hintOptions
@@ -269,7 +294,7 @@ function NameTheCapital({
       setShowHint(false);
     } else {
       // Wrong via hint — count as guess and show in history
-      // reuse non-session handle
+      const willExhaustNonSession = hintTried.size + 1 >= hintOptions.length - 1 && hintOptions.length > 1;
       const entry = capitalToCountries.get(lower);
       let display;
       if (entry) {
@@ -286,6 +311,19 @@ function NameTheCapital({
         ns.add(lower);
         return ns;
       });
+      if (willExhaustNonSession) {
+        const correctRemaining = target.capital.filter(c => !foundCapitals.has(normalizeCap(c)))[0] || target.capital[0];
+        const others = hintOptions
+          .filter(o => normalizeCap(o) !== normalizeCap(correctRemaining))
+          .map(otherCap => {
+            const oLower = normalizeCap(otherCap);
+            const entryO = capitalToCountries.get(oLower);
+            const displayO = entryO ? `${entryO.capital} — capital of ${joinCountryNames(entryO.countries)}` : otherCap;
+            return { capital: otherCap, display: displayO };
+          });
+        setHintReveal({ correct: correctRemaining, others });
+        setGameFailed(true);
+      }
     }
   };
 
@@ -352,6 +390,8 @@ function NameTheCapital({
           <h2 style={{ color: '#48bb78' }}>
             🎉 Correct! {totalCapitals > 1 ? `All capitals of ${target.name.common}: ${target.capital.join(', ')}` : `The capital of ${target.name.common} is ${target.capital[0]}`} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!
           </h2>
+        ) : gameFailed ? (
+          <h2 style={{ color: '#fc8181' }}>❌ All wrong choices selected — The capital{totalCapitals>1?'s':''} of {target.name.common} {totalCapitals>1 ? `are ${target.capital.join(', ')}` : `is ${target.capital[0]}`}</h2>
         ) : isPartialWin ? (
           <div style={{ background: '#276749', padding: '14px 18px', borderRadius: '8px', marginBottom: '12px' }}>
             <div style={{ color: '#c6f6d5', fontWeight: 'bold', fontSize: '16px' }}>
@@ -384,8 +424,8 @@ function NameTheCapital({
           maxWidth: '420px',
           margin: '0 auto 16px',
         }}>
-          <div style={{ color: '#68d391', fontWeight: 'bold', fontSize: '15px', textAlign: 'center' }}>
-            Correct via hint: {(() => {
+          <div style={{ color: effectiveFailed ? '#fc8181' : '#68d391', fontWeight: 'bold', fontSize: '15px', textAlign: 'center' }}>
+            {effectiveFailed ? 'Answer: ' : 'Correct via hint: '}{(() => {
               const e = capitalToCountries.get(normalizeCap(hintReveal.correct));
               return e ? `${e.capital} — capital of ${joinCountryNames(e.countries)}` : hintReveal.correct;
             })()}
@@ -500,14 +540,14 @@ function NameTheCapital({
         </div>
       )}
 
-      {!sessionActive && gameFullyWon && (
+      {!sessionActive && (gameFullyWon || gameFailed) && (
         <button
           onClick={newGame}
           style={{
             padding: '10px 20px',
             borderRadius: '6px',
             border: 'none',
-            background: '#48bb78',
+            background: gameFailed ? '#4a5568' : '#48bb78',
             color: 'white',
             cursor: 'pointer',
             fontSize: '16px',
