@@ -588,6 +588,14 @@ function FindCountryGame({ onHome }) {
             </div>
           )}
 
+          {tried.length > 0 && (!roundOver || failed) && (
+            <div style={{ color: '#fc8181', fontSize: '14px', fontWeight: '600', marginBottom: '10px' }}>
+              {roundOver && failed
+                ? `Incorrect ${failReason} Round Over.`
+                : 'Incorrect. Please choose again'}
+            </div>
+          )}
+
           <p style={{ color: '#a0aec0', marginBottom: '10px', fontSize: '14px' }}>
             Rotate the globe and click the country you think is the target.
             {showNames
