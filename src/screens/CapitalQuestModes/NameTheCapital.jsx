@@ -233,6 +233,16 @@ function NameTheCapital({
         if (onSessionHintUsed && !sessionHintUsed) onSessionHintUsed();
         const willExhaust = hintTried.size + 1 >= hintOptions.length - 1 && hintOptions.length > 1;
         if (willExhaust) {
+          const correctRemaining = target.capital.filter(c => !foundCapitals.has(normalizeCap(c)))[0] || target.capital[0];
+          const others = hintOptions
+            .filter(o => normalizeCap(o) !== normalizeCap(correctRemaining))
+            .map(otherCap => {
+              const oLower = normalizeCap(otherCap);
+              const entry = capitalToCountries.get(oLower);
+              const display = entry ? `${entry.capital} — capital of ${joinCountryNames(entry.countries)}` : otherCap;
+              return { capital: otherCap, display };
+            });
+          setHintReveal({ correct: correctRemaining, others });
           const entry = capitalToCountries.get(lower);
           let display;
           if (entry) {

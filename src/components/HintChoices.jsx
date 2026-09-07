@@ -15,6 +15,9 @@ function HintChoices({ options, correct, triedSet, onPick, disabled }) {
     return optKey === corKey;
   };
 
+  const wrongOptions = options.filter(opt => !isCorrectKey(opt));
+  const allWrongTried = wrongOptions.length > 0 && wrongOptions.every(isTried);
+
   const colCount = options.length > 4 ? 3 : 2;
   return (
     <div style={{
@@ -29,7 +32,8 @@ function HintChoices({ options, correct, triedSet, onPick, disabled }) {
         const tried = isTried(opt);
         const isCorrect = isCorrectKey(opt);
         // never disable correct even if tried (should not happen)
-        const btnDisabled = disabled || (tried && !isCorrect);
+        // but disable correct when all wrong choices are exhausted
+        const btnDisabled = disabled || (tried && !isCorrect) || (allWrongTried && isCorrect);
         return (
           <button
             key={idx}
@@ -44,7 +48,7 @@ function HintChoices({ options, correct, triedSet, onPick, disabled }) {
               cursor: btnDisabled ? 'not-allowed' : 'pointer',
               fontSize: '15px',
               fontWeight: 'bold',
-              opacity: tried ? 0.6 : 1,
+              opacity: tried || (allWrongTried && isCorrect) ? 0.6 : 1,
             }}
           >
             {label} {tried && ' ✗'}

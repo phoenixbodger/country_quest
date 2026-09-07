@@ -4,13 +4,14 @@ import CapitalGuessForm from '../../components/CapitalGuessForm';
 import HintChoices from '../../components/HintChoices';
 import { normalizeCap, getHintCapitals, joinCountryNames } from '../../utils/capitalHelpers';
 
-function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhouetteGuessCount, onWon, onGuessCountChange, disabled }) {
+function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhouetteGuessCount, onWon, onFailed, onGuessCountChange, disabled }) {
   const { uniqueCapitals, capitalToCountries } = capitalIndex || { uniqueCapitals: [], capitalToCountries: new Map() };
   const [guessValue, setGuessValue] = useState('');
   const [guesses, setGuesses] = useState([]);
   const [guessCount, setGuessCount] = useState(0);
   const [foundCapitals, setFoundCapitals] = useState(new Set());
   const [gameFullyWon, setGameFullyWon] = useState(false);
+  const [capitalFailed, setCapitalFailed] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
@@ -80,7 +81,7 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
   const handleHintPick = (opt) => {
     const cap = typeof opt === 'string' ? opt : opt.name || opt;
     const lower = normalizeCap(cap);
-    if (disabled || hintTried.has(lower) || gameFullyWon) return;
+    if (disabled || hintTried.has(lower) || gameFullyWon || capitalFailed) return;
     const targetLowers = (target.capital || []).map(normalizeCap);
     if (targetLowers.includes(lower)) {
       const others = hintOptions
@@ -110,6 +111,13 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
         ns.add(lower);
         return ns;
       });
+      // Check if all wrong choices exhausted (3 wrong out of 4 total)
+      const wrongOptions = hintOptions.filter(o => !targetLowers.includes(normalizeCap(o)));
+      const allWrongTried = wrongOptions.length > 0 && wrongOptions.every(o => hintTried.has(normalizeCap(o)) || normalizeCap(o) === lower);
+      if (allWrongTried) {
+        setCapitalFailed(true);
+        if (onFailed) onFailed(guessCount + 1);
+      }
     }
   };
 
@@ -349,6 +357,29 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
               Play again
             </button>
           )}
+        </div>
+      )}
+
+      {capitalFailed && (
+        <div style={{ marginTop: '10px' }}>
+          <div style={{ color: '#fc8181', fontSize: '15px', fontWeight: 'bold', marginBottom: '8px' }}>
+            ❌ All wrong choices selected — The capital{totalCapitals > 1 ? 's' : ''} of {target.name.common} {totalCapitals > 1 ? `are ${target.capital.join(', ')}` : `is ${target.capital[0]}`}
+          </div>
+          <button
+            onClick={onPlayAgain}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '6px',
+              border: 'none',
+              background: '#3182ce',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold',
+            }}
+          >
+            Continue to flag →
+          </button>
         </div>
       )}
     </div>

@@ -325,6 +325,18 @@ function CountryQuest({ onHome }) {
     }, 2000);
   };
 
+  const handleCapitalFailed = (guessCount) => {
+    setCapitalGuessCount(guessCount);
+    setCapitalLive(guessCount);
+    if (questOver) return;
+    clearAdvanceTimer();
+    advanceTimerRef.current = setTimeout(() => {
+      if (questOverRef.current) return;
+      setStage(STAGES.FLAG);
+      advanceTimerRef.current = null;
+    }, 2000);
+  };
+
   const handleSkipToFlag = () => {
     clearAdvanceTimer();
     setStage(STAGES.FLAG);
@@ -518,6 +530,7 @@ function CountryQuest({ onHome }) {
               capitalIndex={capitalIndex}
               silhouetteGuessCount={silhouetteGuessCount || silhouetteLive}
               onWon={handleCapitalWon}
+              onFailed={handleCapitalFailed}
               onGuessCountChange={setCapitalLive}
               disabled={questOver}
             />
