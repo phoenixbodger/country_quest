@@ -514,20 +514,22 @@ function NameTheCapital({
         <div style={{ color: '#fc8181', fontSize: '14px', marginBottom: '12px' }}>No guesses left — wait for reveal or skip.</div>
       )}
 
-      <div style={{ fontSize: '15px', color: '#a0aec0', marginBottom: '8px' }}>
-        {sessionActive ? (
-          sessionRoundOver ? (
-            effectiveFailed ? `Failed — ${sessionFailReason || ''} • Capitals: ${target.capital.join(', ')}` : `Finished in ${effectiveGuesses} ${effectiveGuesses === 1 ? 'guess' : 'guesses'}${sessionHintUsed ? ' • hint used' : ''}`
+      {!(sessionActive && sessionRoundOver && effectiveFailed) && (
+        <div style={{ fontSize: '15px', color: '#a0aec0', marginBottom: '8px' }}>
+          {sessionActive ? (
+            sessionRoundOver ? (
+              `Finished in ${effectiveGuesses} ${effectiveGuesses === 1 ? 'guess' : 'guesses'}${sessionHintUsed ? ' • hint used' : ''}`
+            ) : (
+              guesses.length > 0 ? `Wrong guesses — ${effectiveGuesses} ${effectiveGuesses === 1 ? 'guess' : 'guesses'} so far${sessionMaxGuesses != null ? ` / ${sessionMaxGuesses}` : ''}` : `No wrong guesses yet${sessionMaxGuesses != null ? ` • ${effectiveGuesses} / ${sessionMaxGuesses}` : ` • ${effectiveGuesses} guesses`}`
+            )
           ) : (
-            guesses.length > 0 ? `Wrong guesses — ${effectiveGuesses} ${effectiveGuesses === 1 ? 'guess' : 'guesses'} so far${sessionMaxGuesses != null ? ` / ${sessionMaxGuesses}` : ''}` : `No wrong guesses yet${sessionMaxGuesses != null ? ` • ${effectiveGuesses} / ${sessionMaxGuesses}` : ` • ${effectiveGuesses} guesses`}`
-          )
-        ) : (
-          guesses.length > 0 ? `Wrong guesses — ${guessCount} ${guessCount === 1 ? 'guess' : 'guesses'} so far` : `No wrong guesses yet`
-        )}
-        {foundCount > 0 && !effectiveWon && !effectiveFailed ? ` • Found ${foundCount}/${totalCapitals}` : ''}
-      </div>
+            guesses.length > 0 ? `Wrong guesses — ${guessCount} ${guessCount === 1 ? 'guess' : 'guesses'} so far` : `No wrong guesses yet`
+          )}
+          {foundCount > 0 && !effectiveWon && !effectiveFailed ? ` • Found ${foundCount}/${totalCapitals}` : ''}
+        </div>
+      )}
 
-      {guesses.length > 0 && (
+      {guesses.length > 0 && !(sessionActive && sessionRoundOver && effectiveFailed) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center', marginBottom: '16px' }}>
           {guesses.map((g, idx) => (
             <div
