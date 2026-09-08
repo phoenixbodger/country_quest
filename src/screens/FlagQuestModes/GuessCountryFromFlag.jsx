@@ -571,6 +571,14 @@ function GuessCountryFromFlag({
         </div>
       </div>
 
+      {tried.length > 0 && !(sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && (
+        <div style={{ color: '#fc8181', fontSize: '14px', fontWeight: '600', marginBottom: '10px' }}>
+          {(sessionActive ? (sessionRoundOver && sessionFailed) : gameFailed)
+            ? `Incorrect. ${sessionActive ? sessionFailReason : 'All wrong choices selected '}Round Over.`
+            : 'Incorrect. Please choose again'}
+        </div>
+      )}
+
       <p style={{ color: '#a0aec0', marginBottom: '10px', fontSize: '14px' }}>
         Rotate and click the globe to select a country — a popup lets you confirm. Toggle borders and persistent country names below — names stay on the globe so islands are easier to find. Scroll to zoom — small islands get bigger and easier to click.
       </p>
