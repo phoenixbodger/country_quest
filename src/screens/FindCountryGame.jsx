@@ -293,6 +293,15 @@ function FindCountryGame({ onHome }) {
           </button>
         </div>
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '4px' }}>{subtitle}</div>
+        {!d.isWin && (
+          <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '4px' }}>
+            {d.alreadyGuessed
+              ? 'Already guessed. Please choose again'
+              : d.guessesExhausted
+                ? 'Incorrect. Round Over'
+                : 'Incorrect. Try again.'}
+          </div>
+        )}
       </div>
     );
   }, [resetPopupPosition, getArrowEmoji]);
@@ -331,7 +340,7 @@ function FindCountryGame({ onHome }) {
     if (roundOver) return;
     const existing = tried.find(t => t.cca3 === cca3);
     if (existing) {
-      setPopup({ cca3, name: existing.name, distanceKm: existing.distanceKm, direction: existing.direction, lat: existing.lat, lng: existing.lng, color: existing.color, isWin: false });
+      setPopup({ cca3, name: existing.name, distanceKm: existing.distanceKm, direction: existing.direction, lat: existing.lat, lng: existing.lng, color: existing.color, isWin: false, alreadyGuessed: true });
       setLastHint(`${existing.name} is ${existing.distanceKm.toLocaleString()} km from the target ${getArrowEmoji(existing.direction)}.`);
       return;
     }
@@ -361,7 +370,8 @@ function FindCountryGame({ onHome }) {
 
     setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
     setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
-    setPopup({ cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false });
+    const exhausted = config && config.maxGuesses != null && newGuesses >= config.maxGuesses;
+    setPopup({ cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false, guessesExhausted: exhausted });
 
     if (config && config.maxGuesses != null && newGuesses >= config.maxGuesses) {
       const entry = {
