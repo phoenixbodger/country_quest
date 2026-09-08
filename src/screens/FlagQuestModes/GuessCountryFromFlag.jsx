@@ -339,6 +339,13 @@ function GuessCountryFromFlag({
           </button>
         </div>
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '6px' }}>{subtitle}</div>
+        {isTried && !isWin && (
+          <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '6px', fontSize: '13px' }}>
+            {(sessionActive ? (!sessionRoundOver && !guessesExhausted) : !gameFailed)
+              ? 'Incorrect. Please try again'
+              : `Incorrect. ${sessionActive ? sessionFailReason : 'All wrong choices selected '}End of Round`}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
           {!isWin && !isTried && (
             <button
@@ -378,7 +385,7 @@ function GuessCountryFromFlag({
         </div>
       </div>
     );
-  }, [resetPopupPosition, isInputDisabled, guessesExhausted, handlePopupConfirm]);
+  }, [resetPopupPosition, isInputDisabled, guessesExhausted, handlePopupConfirm, sessionActive, sessionRoundOver, gameFailed, sessionFailReason]);
 
   const showPopupForCca3 = (cca3) => {
     const feat = features.find(f => f.properties.cca3 === cca3);
