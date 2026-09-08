@@ -601,7 +601,7 @@ function FindCountryGame({ onHome }) {
           {tried.length > 0 && (!roundOver || failed) && (
             <div style={{ color: '#fc8181', fontSize: '14px', fontWeight: '600', marginBottom: '10px' }}>
               {roundOver && failed
-                ? `Incorrect ${failReason} Round Over.`
+                ? `Incorrect ${failReason} The correct answer was ${target.properties.name}. Round Over.`
                 : 'Incorrect. Please choose again'}
             </div>
           )}

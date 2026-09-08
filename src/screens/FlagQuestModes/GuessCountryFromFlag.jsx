@@ -581,7 +581,7 @@ function GuessCountryFromFlag({
       {tried.length > 0 && !(sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && (
         <div style={{ color: '#fc8181', fontSize: '14px', fontWeight: '600', marginBottom: '10px' }}>
           {(sessionActive ? (sessionRoundOver && sessionFailed) : gameFailed)
-            ? `Incorrect. ${sessionActive ? sessionFailReason : 'All wrong choices selected '}Round Over.`
+            ? `Incorrect. ${sessionActive ? sessionFailReason : 'All wrong choices selected '}The correct answer was ${target.properties.name}. Round Over.`
             : 'Incorrect. Please choose again'}
         </div>
       )}
