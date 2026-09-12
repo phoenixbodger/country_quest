@@ -43,9 +43,11 @@ function FindCountryGame({ onHome }) {
   const guessCountRef = useRef(guessCount);
   const historyRef = useRef(history);
   const roundNumberRef = useRef(roundNumber);
+  const popupRef = useRef(null);
   useEffect(() => { guessCountRef.current = guessCount; }, [guessCount]);
   useEffect(() => { historyRef.current = history; }, [history]);
   useEffect(() => { roundNumberRef.current = roundNumber; }, [roundNumber]);
+  useEffect(() => { popupRef.current = popup; }, [popup]);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -126,11 +128,33 @@ function FindCountryGame({ onHome }) {
           const g = guessCountRef.current;
           const tName = getTargetNameRef.current();
           const tCca3 = getTargetCca3Ref.current();
+          const targetLatLng = target?.properties?.latlng;
           const idx = historyRef.current.length + 1;
-          setHistory(h => [...h, { idx, targetName: tName, cca3: tCca3, result: 'incorrect', guesses: g, hintUsed: false, reason: 'timeout' }]);
+          setHistory(h => [...h, { idx, targetName: tName, cca3: tCca3, result: 'incorrect', guesses: g, hintUsed: false, reason: 'timeout', lat: targetLatLng?.[0], lng: targetLatLng?.[1] }]);
+          if (targetLatLng) {
+            setTried(prev => [...prev, { cca3: tCca3, name: tName, distanceKm: 0, direction: '', lat: targetLatLng[0], lng: targetLatLng[1], color: '#fc8181' }]);
+          }
           setRoundOver(true);
           setFailed(true);
           setFailReason('Time is up —');
+
+          const existingPopup = popupRef.current;
+          if (existingPopup) {
+            setPopup({ ...existingPopup, timedOut: true, name: tName });
+          } else if (targetLatLng) {
+            setPopup({
+              cca3: tCca3,
+              name: tName,
+              lat: targetLatLng[0],
+              lng: targetLatLng[1],
+              isWin: false,
+              timedOut: true,
+              color: '#fc8181',
+              distanceKm: 0,
+              direction: '',
+            });
+          }
+
           return 0;
         }
         return prev - 1;
@@ -295,11 +319,13 @@ function FindCountryGame({ onHome }) {
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '4px' }}>{subtitle}</div>
         {!d.isWin && (
           <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '4px' }}>
-            {d.alreadyGuessed
+            {d.timedOut
+              ? 'Incorrect. Time is up. Round over.'
+              : d.alreadyGuessed
               ? 'Already guessed. Please choose again'
               : d.guessesExhausted
-                ? 'Incorrect. Round Over'
-                : 'Incorrect. Try again.'}
+              ? 'Incorrect. Round Over'
+              : 'Incorrect. Try again.'}
           </div>
         )}
       </div>
