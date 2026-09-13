@@ -26,6 +26,7 @@ function NameTheCountry({
   sessionFailed = false,
   sessionFailReason = null,
   sessionRoundKey = 0,
+  onFocusCountry = null,
 }) {
   const globeRef = useRef();
   const containerRef = useRef();
@@ -45,6 +46,7 @@ function NameTheCountry({
   const [popupPosition, setPopupPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [highlightCountry, setHighlightCountry] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
@@ -82,6 +84,7 @@ function NameTheCountry({
       setGuessValue('');
       setPopup(null);
       setPopupPosition({ x: 20, y: 20 });
+      setHighlightCountry(null);
       if (globeRef.current) {
         globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
       }
@@ -202,10 +205,12 @@ function NameTheCountry({
     handleSubmitCountry(found);
   };
 
-  const focusCountry = ({ lat, lng }) => {
+  const focusCountry = ({ lat, lng, cca3 }) => {
+    setHighlightCountry({ cca3, lat, lng });
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
     }
+    if (onFocusCountry) onFocusCountry({ lat, lng, cca3 });
   };
 
   const resetPopupPosition = React.useCallback(() => {
@@ -426,17 +431,32 @@ function NameTheCountry({
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
         const isTarget = (sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && target && target.properties.cca3.toLowerCase() === cca3;
         const matched = tried.find(t => t.cca3.toLowerCase() === cca3);
+        const isHighlighted = highlightCountry && highlightCountry.cca3 && highlightCountry.cca3.toLowerCase() === cca3;
         let color = 'rgba(0, 0, 0, 0)';
-        if (isTarget) color = '#22c55e';
-        else if (matched) color = matched.color;
+        let strokeColor = 'rgba(0, 0, 0, 0)';
+        let altitude = 0.01;
+        if (isHighlighted) {
+          color = 'rgba(236, 72, 153, 0.4)';
+          strokeColor = '#ec4899';
+          altitude = 0.04;
+        } else if (isTarget) {
+          color = '#22c55e';
+          strokeColor = '#000';
+          altitude = 0.03;
+        } else if (matched) {
+          color = matched.color;
+          strokeColor = '#000';
+          altitude = 0.02;
+        }
         return {
           ...polygon,
           cca3,
           color,
-          altitude: isTarget ? 0.03 : matched ? 0.02 : 0.01,
+          strokeColor,
+          altitude,
         };
       });
-  }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed]);
+  }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed, highlightCountry]);
 
   const openHint = () => {
     if (!target) return;
@@ -577,7 +597,7 @@ function NameTheCountry({
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor={showBorders ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0)'}
+          polygonStrokeColor="strokeColor"
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={300}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
@@ -830,6 +850,38 @@ function NameTheCountry({
                 <span style={{ color: t.color, fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
               </button>
             ))}
+            {(effectiveWon || effectiveFailed) && target && (
+              <button
+                key={`correct-${target.properties.cca3}`}
+                onClick={() => {
+                  const [lat, lng] = target.properties.latlng || [0, 0];
+                  focusCountry({ lat, lng, cca3: target.properties.cca3 });
+                  setPopup({ cca3: target.properties.cca3, name: target.properties.name, lat, lng, isWin: true, isTried: false });
+                }}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '16px',
+                  width: '100%',
+                  maxWidth: '360px',
+                  padding: '8px 14px',
+                  borderRadius: '6px',
+                  border: '1px solid #4a5568',
+                  background: 'rgba(236, 72, 153, 0.1)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  borderLeft: '6px solid #ec4899',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ec4899', display: 'inline-block', flexShrink: 0 }} />
+                  {target.properties.name} <span style={{ color: '#ec4899', fontSize: '12px' }}>✓ Correct answer</span>
+                </span>
+                <span style={{ color: '#ec4899', fontWeight: 'bold' }}>—</span>
+              </button>
+            )}
           </div>
         </div>
       )}

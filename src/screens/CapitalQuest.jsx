@@ -32,6 +32,7 @@ function CapitalQuest({ onHome }) {
   const hintUsedRef = useRef(hintUsed);
   const historyRef = useRef(history);
   const roundNumberRef = useRef(roundNumber);
+  const focusCountryRef = useRef(null);
   useEffect(() => { guessCountRef.current = guessCount; }, [guessCount]);
   useEffect(() => { hintUsedRef.current = hintUsed; }, [hintUsed]);
   useEffect(() => { historyRef.current = history; }, [history]);
@@ -41,6 +42,12 @@ function CapitalQuest({ onHome }) {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+  };
+
+  const focusCountry = (country) => {
+    if (focusCountryRef.current) {
+      focusCountryRef.current(country);
     }
   };
 
@@ -142,8 +149,10 @@ function CapitalQuest({ onHome }) {
           const hUsed = hintUsedRef.current;
           const tName = getTargetNameRef.current();
           const tCca3 = getTargetCca3Ref.current();
+          const targetObj = mode === 'capital' ? targetCapital : targetCountryFeature;
+          const targetLatLng = targetObj?.properties?.latlng || targetObj?.latlng;
           const idx = historyRef.current.length + 1;
-          setHistory(h => [...h, { idx, targetName: tName, cca3: tCca3, result: 'incorrect', guesses: g, hintUsed: hUsed, reason: 'timeout' }]);
+          setHistory(h => [...h, { idx, targetName: tName, cca3: tCca3, result: 'incorrect', guesses: g, hintUsed: hUsed, reason: 'timeout', targetLat: targetLatLng?.[0], targetLng: targetLatLng?.[1], targetCca3: tCca3 }]);
           setRoundOver(true);
           setFailed(true);
           setFailReason('Time is up —');
@@ -169,14 +178,20 @@ function CapitalQuest({ onHome }) {
     setGuessCount(newGuesses);
     const result = h ? 'correct_hint' : 'correct';
     const reason = h ? 'hint used' : 'guessed';
+    const targetCca3 = getTargetCca3();
+    const targetObj = mode === 'capital' ? targetCapital : targetCountryFeature;
+    const targetLatLng = targetObj?.properties?.latlng || targetObj?.latlng;
     const entry = {
       idx: history.length + 1,
       targetName: getTargetName(),
-      cca3: getTargetCca3(),
+      cca3: targetCca3,
       result,
       guesses: newGuesses,
       hintUsed: h,
       reason,
+      targetLat: targetLatLng?.[0],
+      targetLng: targetLatLng?.[1],
+      targetCca3,
     };
     setHistory(prev => [...prev, entry]);
     setRoundOver(true);
@@ -193,14 +208,20 @@ function CapitalQuest({ onHome }) {
     const newGuesses = guessCount + 1;
     setGuessCount(newGuesses);
     if (config && config.maxGuesses != null && newGuesses >= config.maxGuesses) {
+      const targetCca3 = getTargetCca3();
+      const targetObj = mode === 'capital' ? targetCapital : targetCountryFeature;
+      const targetLatLng = targetObj?.properties?.latlng || targetObj?.latlng;
       const entry = {
         idx: history.length + 1,
         targetName: getTargetName(),
-        cca3: getTargetCca3(),
+        cca3: targetCca3,
         result: 'incorrect',
         guesses: newGuesses,
         hintUsed,
         reason: 'guess limit',
+        targetLat: targetLatLng?.[0],
+        targetLng: targetLatLng?.[1],
+        targetCca3,
       };
       setHistory(prev => [...prev, entry]);
       setRoundOver(true);
@@ -232,14 +253,20 @@ function CapitalQuest({ onHome }) {
 
   const handleSkip = () => {
     if (roundOver) return;
+    const targetCca3 = getTargetCca3();
+    const targetObj = mode === 'capital' ? targetCapital : targetCountryFeature;
+    const targetLatLng = targetObj?.properties?.latlng || targetObj?.latlng;
     const entry = {
       idx: history.length + 1,
       targetName: getTargetName(),
-      cca3: getTargetCca3(),
+      cca3: targetCca3,
       result: 'incorrect',
       guesses: guessCount,
       hintUsed,
       reason: 'skipped',
+      targetLat: targetLatLng?.[0],
+      targetLng: targetLatLng?.[1],
+      targetCca3,
     };
     setHistory(prev => [...prev, entry]);
     setRoundOver(true);
@@ -452,6 +479,7 @@ function CapitalQuest({ onHome }) {
               sessionFailed={failed}
               sessionFailReason={failReason}
               sessionRoundKey={roundKey}
+              onFocusCountry={(country) => { focusCountryRef.current = (c) => focusCountry(c); }}
             />
           )}
         </>
@@ -465,6 +493,7 @@ function CapitalQuest({ onHome }) {
           onReplaySame={handleReplaySame}
           onChangeSettings={handleChangeSettings}
           onHome={onHome}
+          onCountryClick={focusCountry}
         />
       )}
     </GameShell>

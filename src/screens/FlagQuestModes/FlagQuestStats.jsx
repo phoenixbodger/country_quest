@@ -1,6 +1,6 @@
 import React from 'react';
 
-function FlagQuestStats({ stats, config, mode, onReplaySame, onChangeSettings, onHome }) {
+function FlagQuestStats({ stats, config, mode, onReplaySame, onChangeSettings, onHome, onCountryClick }) {
   const total = stats.history.length;
   const correct = stats.correct;
   const correctHint = stats.correctWithHint;
@@ -74,10 +74,22 @@ function FlagQuestStats({ stats, config, mode, onReplaySame, onChangeSettings, o
                   else { resultLabel = 'Correct (hint used)'; resultColor = '#63b3ed'; }
                 }
                 else { resultLabel = 'Incorrect'; resultColor = '#fc8181'; }
+                const isClickable = h.result === 'incorrect' && h.targetLat != null && h.targetLng != null && h.targetCca3 && onCountryClick;
                 return (
                   <tr key={i} style={{ borderBottom: '1px solid #2d3748', color: '#e2e8f0' }}>
                     <td style={{ padding: '6px 8px' }}>{h.idx}</td>
-                    <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>{h.targetName}</td>
+                    <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>
+                      {isClickable ? (
+                        <span
+                          style={{ color: '#ec4899', cursor: 'pointer', textDecoration: 'underline' }}
+                          onClick={() => onCountryClick({ lat: h.targetLat, lng: h.targetLng, cca3: h.targetCca3, name: h.targetName })}
+                        >
+                          {h.targetName}
+                        </span>
+                      ) : (
+                        h.targetName
+                      )}
+                    </td>
                     <td style={{ padding: '6px 8px', color: resultColor, fontWeight: 'bold' }}>{resultLabel}</td>
                     <td style={{ padding: '6px 8px' }}>{h.guesses}</td>
                     <td style={{ padding: '6px 8px', color: '#a0aec0' }}>{h.reason}</td>

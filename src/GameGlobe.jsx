@@ -35,7 +35,7 @@ function cleanGeometry(geometry) {
   return geometry;
 }
 
-function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
+function GameGlobe({ latestGuessObj, guesses = [], targetCountry, highlightCountry }) {
   const globeRef = useRef();
   const [worldPolygons, setWorldPolygons] = useState([]);
 
@@ -61,19 +61,32 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
         const matchedGuess = guesses.find(g => (g.cca3 || '').toLowerCase() === cca3);
         const isCorrect = matchedGuess && matchedGuess.distance === 0;
+        const isHighlighted = highlightCountry && highlightCountry.cca3 && highlightCountry.cca3.toLowerCase() === cca3;
         let color = 'rgba(0,0,0,0)';
-        if (isCorrect) color = '#22c55e';
-        else if (matchedGuess) color = matchedGuess.color;
+        let strokeColor = 'rgba(0, 0, 0, 0)';
+        let altitude = 0.01;
+        if (isHighlighted) {
+          color = 'rgba(236, 72, 153, 0.4)';
+          strokeColor = '#ec4899';
+          altitude = 0.04;
+        } else if (isCorrect) {
+          color = '#22c55e';
+          strokeColor = '#000';
+        } else if (matchedGuess) {
+          color = matchedGuess.color;
+          strokeColor = '#000';
+        }
         return {
           ...polygon,
           geometry,
           cca3,
           color,
-          altitude: 0.01,
+          strokeColor,
+          altitude,
         };
       })
       .filter(Boolean);
-  }, [worldPolygons, guesses, targetCountry]);
+  }, [worldPolygons, guesses, targetCountry, highlightCountry]);
 
   return (
     <div style={{
@@ -96,6 +109,7 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry }) {
         polygonCapColor="color"
         polygonAltitude="altitude"
         polygonSideColor="rgba(0, 0, 0, 0)"
+        polygonStrokeColor="strokeColor"
         polygonsTransitionDuration={500}
 
         atmosphereColor="#38bdf8"

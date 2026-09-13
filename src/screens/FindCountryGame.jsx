@@ -26,6 +26,7 @@ function FindCountryGame({ onHome }) {
   const [showBorders, setShowBorders] = useState(false);
   const [showNames, setShowNames] = useState(false);
   const [lastClickedCca3, setLastClickedCca3] = useState(null);
+  const [highlightCountry, setHighlightCountry] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   // session state
@@ -131,7 +132,7 @@ function FindCountryGame({ onHome }) {
           const tCca3 = getTargetCca3Ref.current();
           const targetLatLng = target?.properties?.latlng;
           const idx = historyRef.current.length + 1;
-          setHistory(h => [...h, { idx, targetName: tName, cca3: tCca3, result: 'incorrect', guesses: g, hintUsed: false, reason: 'timeout', lat: targetLatLng?.[0], lng: targetLatLng?.[1] }]);
+          setHistory(h => [...h, { idx, targetName: tName, cca3: tCca3, result: 'incorrect', guesses: g, hintUsed: false, reason: 'timeout', targetLat: targetLatLng?.[0], targetLng: targetLatLng?.[1], targetCca3: tCca3 }]);
           if (targetLatLng) {
             setTried(prev => [...prev, { cca3: tCca3, name: tName, distanceKm: 0, direction: '', lat: targetLatLng[0], lng: targetLatLng[1], color: '#fc8181' }]);
           }
@@ -190,6 +191,7 @@ function FindCountryGame({ onHome }) {
       setPopup(null);
       setPopupPosition({ x: 20, y: 20 });
       setLastClickedCca3(null);
+      setHighlightCountry(null);
     }
   }, [roundKey]);
 
@@ -344,6 +346,7 @@ function FindCountryGame({ onHome }) {
   const handleWin = (winCca3) => {
     const newGuesses = guessCount + 1;
     setGuessCount(newGuesses);
+    const targetLatLng = target?.properties?.latlng;
     const entry = {
       idx: history.length + 1,
       targetName: getTargetName(),
@@ -352,6 +355,9 @@ function FindCountryGame({ onHome }) {
       guesses: newGuesses,
       hintUsed: false,
       reason: 'guessed',
+      targetLat: targetLatLng?.[0],
+      targetLng: targetLatLng?.[1],
+      targetCca3: getTargetCca3(),
     };
     setHistory(prev => [...prev, entry]);
     setRoundOver(true);
@@ -409,6 +415,7 @@ function FindCountryGame({ onHome }) {
     setPopup({ cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false, guessesExhausted: exhausted });
 
     if (config && config.maxGuesses != null && newGuesses >= config.maxGuesses) {
+      const targetLatLng = target?.properties?.latlng;
       const entry = {
         idx: history.length + 1,
         targetName: getTargetName(),
@@ -417,6 +424,9 @@ function FindCountryGame({ onHome }) {
         guesses: newGuesses,
         hintUsed: false,
         reason: 'guess limit',
+        targetLat: targetLatLng?.[0],
+        targetLng: targetLatLng?.[1],
+        targetCca3: getTargetCca3(),
       };
       setHistory(prev => [...prev, entry]);
       setRoundOver(true);
@@ -428,6 +438,7 @@ function FindCountryGame({ onHome }) {
 
   const handleSkip = () => {
     if (roundOver) return;
+    const targetLatLng = target?.properties?.latlng;
     const entry = {
       idx: history.length + 1,
       targetName: getTargetName(),
@@ -436,6 +447,9 @@ function FindCountryGame({ onHome }) {
       guesses: guessCount,
       hintUsed: false,
       reason: 'skipped',
+      targetLat: targetLatLng?.[0],
+      targetLng: targetLatLng?.[1],
+      targetCca3: getTargetCca3(),
     };
     setHistory(prev => [...prev, entry]);
     setRoundOver(true);
@@ -507,6 +521,7 @@ function FindCountryGame({ onHome }) {
 
   const focusCountry = ({ lat, lng, cca3 }) => {
     setLastClickedCca3(cca3);
+    setHighlightCountry({ cca3, lat, lng });
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
     }
@@ -532,24 +547,33 @@ function FindCountryGame({ onHome }) {
         const isTarget = roundOver && target && target.properties.cca3.toLowerCase() === cca3;
         const matched = tried.find(t => t.cca3.toLowerCase() === cca3);
         const isCurrent = lastClickedCca3 && lastClickedCca3.toLowerCase() === cca3;
+        const isHighlighted = highlightCountry && highlightCountry.cca3 && highlightCountry.cca3.toLowerCase() === cca3;
         let color = 'rgba(0, 0, 0, 0)';
         let strokeColor = 'rgba(0, 0, 0, 0)';
-        if (isCurrent) {
+        let altitude = 0.01;
+        if (isHighlighted) {
+          color = 'rgba(236, 72, 153, 0.4)';
+          strokeColor = '#ec4899';
+          altitude = 0.04;
+        } else if (isCurrent) {
           strokeColor = '#ff00ff';
           color = 'rgba(255, 0, 255, 0.3)';
+          altitude = 0.02;
         } else if (isTarget) {
           color = '#22c55e';
           strokeColor = '#000';
+          altitude = 0.03;
         } else if (matched) {
           color = matched.color;
           strokeColor = '#000';
+          altitude = 0.02;
         }
         return {
           ...polygon,
           cca3,
           color,
           strokeColor,
-          altitude: isTarget ? 0.03 : matched ? 0.02 : 0.01,
+          altitude,
         };
       });
   }, [worldPolygons, tried, roundOver, target, lastClickedCca3]);
@@ -778,6 +802,34 @@ function FindCountryGame({ onHome }) {
                     <span style={{ color: t.color, fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
                   </button>
                 ))}
+                {roundOver && target && (
+                  <button
+                    key={`correct-${target.properties.cca3}`}
+                    onClick={() => focusCountry({ lat: target.properties.latlng[0], lng: target.properties.latlng[1], cca3: target.properties.cca3 })}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '16px',
+                      width: '100%',
+                      maxWidth: '360px',
+                      padding: '8px 14px',
+                      borderRadius: '6px',
+                      border: '1px solid #4a5568',
+                      background: 'rgba(236, 72, 153, 0.1)',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '15px',
+                      borderLeft: '6px solid #ec4899',
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ec4899', display: 'inline-block', flexShrink: 0 }} />
+                      {target.properties.name} <span style={{ color: '#ec4899', fontSize: '12px' }}>✓ Correct answer</span>
+                    </span>
+                    <span style={{ color: '#ec4899', fontWeight: 'bold' }}>—</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -791,6 +843,7 @@ function FindCountryGame({ onHome }) {
           onReplaySame={handleReplaySame}
           onChangeSettings={handleChangeSettings}
           onHome={onHome}
+          onCountryClick={focusCountry}
         />
       )}
     </GameShell>

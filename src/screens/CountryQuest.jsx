@@ -74,6 +74,7 @@ function CountryQuest({ onHome }) {
   const capitalLiveRef = useRef(capitalLive);
   const flagLiveRef = useRef(flagLive);
   const questOverRef = useRef(questOver);
+  const focusCountryRef = useRef(null);
   useEffect(() => { historyRef.current = history; }, [history]);
   useEffect(() => { targetCountryRef.current = targetCountry; }, [targetCountry]);
   useEffect(() => { stageRef.current = stage; }, [stage]);
@@ -89,6 +90,12 @@ function CountryQuest({ onHome }) {
     if (sessionTimerRef.current) {
       clearInterval(sessionTimerRef.current);
       sessionTimerRef.current = null;
+    }
+  };
+
+  const focusCountry = (country) => {
+    if (focusCountryRef.current) {
+      focusCountryRef.current(country);
     }
   };
 
@@ -135,6 +142,9 @@ function CountryQuest({ onHome }) {
       result,
       guesses: { silhouette: s, capital: c, flag: f, total },
       reason,
+      targetLat: t?.latlng?.[0],
+      targetLng: t?.latlng?.[1],
+      targetCca3: t?.cca3 || '',
     };
   };
 
@@ -356,6 +366,9 @@ function CountryQuest({ onHome }) {
       result: 'correct',
       guesses: { silhouette: s, capital: c, flag: f, total },
       reason: 'completed',
+      targetLat: t?.latlng?.[0],
+      targetLng: t?.latlng?.[1],
+      targetCca3: t?.cca3 || '',
     };
     setHistory(prev => [...prev, entry]);
     setQuestOver(true);
@@ -498,6 +511,7 @@ function CountryQuest({ onHome }) {
               onWon={handleSilhouetteWon}
               onGuessCountChange={setSilhouetteLive}
               disabled={questOver}
+              onFocusCountry={(country) => { focusCountryRef.current = (c) => focusCountry(c); }}
             />
           )}
 
@@ -627,6 +641,7 @@ function CountryQuest({ onHome }) {
           onReplaySame={handleReplaySame}
           onChangeSettings={handleChangeSettings}
           onHome={onHome}
+          onCountryClick={focusCountry}
         />
       )}
     </GameShell>
