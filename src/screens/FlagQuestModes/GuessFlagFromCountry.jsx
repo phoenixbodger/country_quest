@@ -183,7 +183,7 @@ function GuessFlagFromCountry({
       {sessionActive ? (
         sessionRoundOver ? (
           sessionFailed ? (
-            <h2 style={{ color: '#fc8181' }}>❌ {sessionFailReason || 'Incorrect'} — The flag of {target.name.common}</h2>
+            <h2 style={{ color: '#fc8181' }}>❌ Incorrect. End of Round. The flag of {target.name.common}</h2>
           ) : (
             <h2 style={{ color: '#48bb78' }}>
               🎉 Correct! The flag of {target.name.common} ({effectiveGuessCount} {effectiveGuessCount === 1 ? 'guess' : 'guesses'})!
@@ -201,7 +201,7 @@ function GuessFlagFromCountry({
             🎉 Correct! The flag of {target.name.common} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!
           </h2>
         ) : gameFailed ? (
-          <h2 style={{ color: '#fc8181' }}>❌ All wrong choices selected — The flag of {target.name.common}</h2>
+          <h2 style={{ color: '#fc8181' }}>❌ Incorrect. End of Round. The flag of {target.name.common}</h2>
         ) : (
           <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '12px' }}>
             Pick the correct flag — wrong guesses will be disabled.

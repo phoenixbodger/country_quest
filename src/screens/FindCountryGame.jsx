@@ -268,12 +268,15 @@ function FindCountryGame({ onHome }) {
   }, [isDragging, handleDragMove, handleDragEnd]);
 
   const renderPopupElement = useCallback((d) => {
-    const title = d.isWin ? `🎉 ${d.name}!` : d.name;
+    const isFailure = !d.isWin && (d.timedOut || d.guessesExhausted || d.isFailure);
+    const title = d.isWin ? `🎉 ${d.name}!` : isFailure ? `❌ ${d.name}` : d.name;
     const subtitle = d.isWin
       ? 'Correct!'
-      : `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`;
-    const accentColor = d.isWin ? '#22c55e' : d.color;
-    const textColor = d.isWin ? '#68d391' : d.color;
+      : isFailure
+        ? 'End of Round'
+        : `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`;
+    const accentColor = d.isWin ? '#22c55e' : isFailure ? '#fc8181' : d.color;
+    const textColor = d.isWin ? '#68d391' : isFailure ? '#fc8181' : d.color;
 
     return (
       <div
@@ -331,11 +334,11 @@ function FindCountryGame({ onHome }) {
         {!d.isWin && (
           <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '4px' }}>
             {d.timedOut
-              ? 'Incorrect. Time is up. Round over.'
+              ? `Incorrect. End of Round. Time is up. The answer was ${d.name}.`
               : d.alreadyGuessed
               ? 'Already guessed. Please choose again'
-              : d.guessesExhausted
-              ? 'Incorrect. Round Over'
+              : d.guessesExhausted || d.isFailure
+              ? `Incorrect. End of Round. The answer was ${d.name}.`
               : 'Incorrect. Try again.'}
           </div>
         )}
@@ -412,9 +415,25 @@ function FindCountryGame({ onHome }) {
     setTried(prev => [...prev, { cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
     setLastHint(`${clicked.properties.name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
     const exhausted = config && config.maxGuesses != null && newGuesses >= config.maxGuesses;
-    setPopup({ cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false, guessesExhausted: exhausted });
+    if (exhausted) {
+      const targetLatLng = target?.properties?.latlng;
+      setPopup({
+        cca3: getTargetCca3(),
+        name: getTargetName(),
+        lat: targetLatLng?.[0] ?? 0,
+        lng: targetLatLng?.[1] ?? 0,
+        isWin: false,
+        guessesExhausted: true,
+        isFailure: true,
+        color: '#fc8181',
+        distanceKm: 0,
+        direction: '',
+      });
+    } else {
+      setPopup({ cca3, name: clicked.properties.name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false, guessesExhausted: false });
+    }
 
-    if (config && config.maxGuesses != null && newGuesses >= config.maxGuesses) {
+    if (exhausted) {
       const targetLatLng = target?.properties?.latlng;
       const entry = {
         idx: history.length + 1,
@@ -455,7 +474,17 @@ function FindCountryGame({ onHome }) {
     setRoundOver(true);
     setFailed(true);
     setFailReason('Skipped —');
-    setPopup(null);
+    setPopup({
+      cca3: getTargetCca3(),
+      name: getTargetName(),
+      lat: targetLatLng?.[0] ?? 0,
+      lng: targetLatLng?.[1] ?? 0,
+      isWin: false,
+      isFailure: true,
+      color: '#fc8181',
+      distanceKm: 0,
+      direction: '',
+    });
     clearTimer();
   };
 
@@ -672,7 +701,7 @@ function FindCountryGame({ onHome }) {
           {tried.length > 0 && (!roundOver || failed) && (
             <div style={{ color: '#fc8181', fontSize: '14px', fontWeight: '600', marginBottom: '10px' }}>
               {roundOver && failed
-                ? `Incorrect ${failReason} The correct answer was ${target.properties.name}. Round Over.`
+                ? `Incorrect. End of Round. The answer was ${target.properties.name}.`
                 : 'Incorrect. Please choose again'}
             </div>
           )}

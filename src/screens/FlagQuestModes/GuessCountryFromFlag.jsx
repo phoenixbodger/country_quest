@@ -100,6 +100,17 @@ function GuessCountryFromFlag({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const failed = sessionActive ? (sessionRoundOver && sessionFailed) : gameFailed;
+    if (!failed || !target) return;
+    const targetCca3 = target?.properties?.cca3;
+    const targetFeature = features.find(f => f.properties.cca3 === targetCca3);
+    const targetCountry = countries.find(c => c.cca3 === targetCca3);
+    const targetName = target?.properties?.name || targetCountry?.name?.common || targetCca3;
+    const [lat, lng] = targetCountry?.latlng || targetFeature?.properties?.latlng || target?.properties?.latlng || [0, 0];
+    setPopup({ cca3: targetCca3, name: targetName, lat, lng, isWin: false, isTried: false, isFailure: true });
+  }, [sessionActive, sessionRoundOver, sessionFailed, gameFailed, target, features, countries]);
+
   const countryIndex = useMemo(() => buildCountryIndex(features), [features]);
 
   const newGame = () => {
@@ -178,7 +189,7 @@ function GuessCountryFromFlag({
       return;
     }
     // non-session mode (original)
-    if (gameWon || tried.some(t => t.cca3 === cca3)) return;
+    if (gameWon || gameFailed || tried.some(t => t.cca3 === cca3)) return;
     setGuessCount(n => n + 1);
     if (cca3 === target.properties.cca3) {
       const winFeat = features.find(f => f.properties.cca3 === cca3);
@@ -210,7 +221,7 @@ function GuessCountryFromFlag({
   };
 
   const handleSubmitCountry = (country) => {
-    if (sessionActive ? sessionRoundOver : gameWon) return;
+    if (sessionActive ? sessionRoundOver : (gameWon || gameFailed)) return;
     handleGuessByCca3(country.cca3);
     setGuessValue('');
   };
@@ -293,24 +304,28 @@ function GuessCountryFromFlag({
     if (!popup) return;
     const cca3 = popup.cca3;
     if (tried.some(t => t.cca3 === cca3)) return;
-    if (sessionActive ? sessionRoundOver : gameWon) return;
+    if (popup.isFailure) return;
+    if (sessionActive ? sessionRoundOver : (gameWon || gameFailed)) return;
     if (guessesExhausted) return;
     handleGuessByCca3(cca3);
-  }, [popup, tried, sessionActive, sessionRoundOver, gameWon, guessesExhausted, handleGuessByCca3]);
+  }, [popup, tried, sessionActive, sessionRoundOver, gameWon, gameFailed, guessesExhausted, handleGuessByCca3]);
 
   const renderPopupElement = React.useCallback((d) => {
     if (!d) return null;
     const isWin = !!d.isWin;
     const isTried = !!d.isTried;
-    const title = isWin ? `🎉 ${d.name}!` : d.name;
+    const isFailure = !!d.isFailure;
+    const title = isWin ? `🎉 ${d.name}!` : isFailure ? `❌ ${d.name}` : d.name;
     const subtitle = isWin
       ? 'Correct!'
-      : isTried
-        ? `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`
-        : 'Selected — confirm your guess';
-    const accentColor = isWin ? '#22c55e' : (d.color || '#3182ce');
-    const textColor = isWin ? '#68d391' : (d.color || '#a0aec0');
-    const canConfirm = !isWin && !isTried && !isInputDisabled && !guessesExhausted;
+      : isFailure
+        ? `Incorrect. End of Round. The answer was ${d.name}.`
+        : isTried
+          ? `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`
+          : 'Selected — confirm your guess';
+    const accentColor = isWin ? '#22c55e' : isFailure ? '#fc8181' : (d.color || '#3182ce');
+    const textColor = isWin ? '#68d391' : isFailure ? '#fc8181' : (d.color || '#a0aec0');
+    const canConfirm = !isWin && !isTried && !isFailure && !isInputDisabled && !guessesExhausted;
     return (
       <div
         style={{
@@ -351,12 +366,12 @@ function GuessCountryFromFlag({
         {isTried && !isWin && (
           <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '6px', fontSize: '13px' }}>
             {(sessionActive ? (!sessionRoundOver && !guessesExhausted) : !gameFailed)
-              ? 'Incorrect. Please try again'
-              : `Incorrect. ${sessionActive ? sessionFailReason : 'All wrong choices selected '}End of Round`}
+               ? 'Incorrect. Please try again'
+               : `Incorrect. End of Round. The answer was ${target.properties.name}.`}
           </div>
         )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-          {!isWin && !isTried && (
+          {!isWin && !isTried && !isFailure && (
             <button
               onClick={(e) => { e.stopPropagation(); handlePopupConfirm(); }}
               disabled={!canConfirm}
@@ -394,9 +409,11 @@ function GuessCountryFromFlag({
         </div>
       </div>
     );
-  }, [resetPopupPosition, isInputDisabled, guessesExhausted, handlePopupConfirm, sessionActive, sessionRoundOver, gameFailed, sessionFailReason]);
+  }, [resetPopupPosition, isInputDisabled, guessesExhausted, handlePopupConfirm, sessionActive, sessionRoundOver, gameFailed, sessionFailReason, target]);
 
   const showPopupForCca3 = (cca3) => {
+    if (sessionActive ? sessionRoundOver : (gameWon || gameFailed)) return;
+    if (guessesExhausted) return;
     setLastGuessedCca3(cca3);
     const feat = features.find(f => f.properties.cca3 === cca3);
     if (!feat) return;
@@ -418,7 +435,7 @@ function GuessCountryFromFlag({
 
   const handlePolygonClick = (polygon) => {
     if (sessionActive && sessionRoundOver) return;
-    if (sessionActive ? sessionRoundOver : gameWon) return;
+    if (sessionActive ? sessionRoundOver : (gameWon || gameFailed)) return;
     if (guessesExhausted) return;
     const cca3 = polygon.properties?.cca3;
     if (!cca3) return;
@@ -426,7 +443,7 @@ function GuessCountryFromFlag({
   };
 
   const handleMissClick = ({ lat, lng }) => {
-    if (sessionActive ? sessionRoundOver : gameWon) return;
+    if (sessionActive ? sessionRoundOver : (gameWon || gameFailed)) return;
     if (guessesExhausted) return;
     const altitude = globeRef.current?.pointOfView()?.altitude ?? 2.5;
     const toleranceKm = Math.min(600, Math.max(20, altitude * 200));
@@ -611,7 +628,7 @@ function GuessCountryFromFlag({
       {tried.length > 0 && !(sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && (
         <div style={{ color: '#fc8181', fontSize: '14px', fontWeight: '600', marginBottom: '10px' }}>
           {(sessionActive ? (sessionRoundOver && sessionFailed) : gameFailed)
-            ? `Incorrect. ${sessionActive ? sessionFailReason : 'All wrong choices selected '}The correct answer was ${target.properties.name}. Round Over.`
+            ? `Incorrect. End of Round. The answer was ${target.properties.name}.`
             : 'Incorrect. Please choose again'}
         </div>
       )}
@@ -846,7 +863,7 @@ function GuessCountryFromFlag({
         {sessionActive ? (
           sessionRoundOver ? (
             sessionFailed ? (
-              <span style={{ color: '#fc8181' }}>❌ {sessionFailReason || 'Incorrect'} The answer was {target.properties.name} {targetCountryObj?.flag || ''}</span>
+              <span style={{ color: '#fc8181' }}>❌ Incorrect. End of Round. The answer was {target.properties.name} {targetCountryObj?.flag || ''}</span>
             ) : (
               <span style={{ color: '#48bb78' }}>🎉 Correct! It was {target.properties.name} ({effectiveGuesses} {effectiveGuesses === 1 ? 'guess' : 'guesses'}){sessionHintUsed ? ' — hint used' : ''}!</span>
             )
@@ -857,7 +874,7 @@ function GuessCountryFromFlag({
           gameWon ? (
             <span style={{ color: '#48bb78' }}>🎉 Correct! It was {target.properties.name} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!</span>
           ) : gameFailed ? (
-            <span style={{ color: '#fc8181' }}>❌ All wrong choices selected — The answer was {target.properties.name} {targetCountryObj?.flag || ''}</span>
+            <span style={{ color: '#fc8181' }}>❌ Incorrect. End of Round. The answer was {target.properties.name} {targetCountryObj?.flag || ''}</span>
           ) : (
             <span style={{ color: '#a0aec0' }}>Guesses: {guessCount}</span>
           )

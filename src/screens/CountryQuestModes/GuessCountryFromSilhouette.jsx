@@ -218,19 +218,30 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     handleGuessByCca3(cca3);
   }, [popup, tried, gameWon, gameFailed, handleGuessByCca3]);
 
+  useEffect(() => {
+    if (!gameFailed || !target) return;
+    const targetCca3 = target?.properties?.cca3 || target?.cca3;
+    const targetName = target?.properties?.name || countries.find(c => c.cca3 === targetCca3)?.name?.common || targetCca3;
+    const [lat, lng] = target?.properties?.latlng || countries.find(c => c.cca3 === targetCca3)?.latlng || [0, 0];
+    setPopup({ cca3: targetCca3, name: targetName, lat, lng, isWin: false, isTried: false, isFailure: true });
+  }, [gameFailed, target, countries]);
+
   const renderPopupElement = React.useCallback((d) => {
     if (!d) return null;
     const isWin = !!d.isWin;
     const isTried = !!d.isTried;
-    const title = isWin ? `🎉 ${d.name}!` : d.name;
+    const isFailure = !!d.isFailure;
+    const title = isWin ? `🎉 ${d.name}!` : isFailure ? `❌ ${d.name}` : d.name;
     const subtitle = isWin
       ? 'Correct!'
-      : isTried
-        ? `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`
-        : 'Selected — confirm your guess';
-    const accentColor = isWin ? '#22c55e' : (d.color || '#3182ce');
-    const textColor = isWin ? '#68d391' : (d.color || '#a0aec0');
-    const canConfirm = !isWin && !isTried && !gameWon && !gameFailed;
+      : isFailure
+        ? `Incorrect. End of Round. The country was ${d.name}.`
+        : isTried
+          ? `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`
+          : 'Selected — confirm your guess';
+    const accentColor = isWin ? '#22c55e' : isFailure ? '#fc8181' : (d.color || '#3182ce');
+    const textColor = isWin ? '#68d391' : isFailure ? '#fc8181' : (d.color || '#a0aec0');
+    const canConfirm = !isWin && !isTried && !isFailure && !gameWon && !gameFailed;
     return (
       <div
         style={{
@@ -269,7 +280,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
         </div>
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '6px' }}>{subtitle}</div>
         <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-          {!isWin && !isTried && (
+          {!isWin && !isTried && !isFailure && (
             <button
               onClick={(e) => { e.stopPropagation(); handlePopupConfirm(); }}
               disabled={!canConfirm}
@@ -296,6 +307,11 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           {isWin && (
             <div style={{ flex: 1, padding: '7px 10px', borderRadius: '6px', background: 'rgba(34,197,94,0.15)', border: '1px solid #22c55e', color: '#68d391', fontWeight: 'bold', fontSize: '13px', textAlign: 'center' }}>
               Correct!
+            </div>
+          )}
+          {isFailure && (
+            <div style={{ flex: 1, padding: '7px 10px', borderRadius: '6px', background: 'rgba(252,129,129,0.15)', border: '1px solid #fc8181', color: '#fc8181', fontWeight: 'bold', fontSize: '13px', textAlign: 'center' }}>
+              End of Round
             </div>
           )}
           <button
@@ -456,10 +472,10 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
       ) : gameFailed ? (
         <div style={{ background: '#742a2a', padding: '14px 18px', borderRadius: '8px', marginBottom: '12px', border: '1px solid #9b2c2c' }}>
           <div style={{ color: '#fed7d7', fontWeight: 'bold', fontSize: '18px' }}>
-            The country was <span style={{ color: 'white' }}>{displayName}</span> ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})
+            Incorrect. End of Round. The country was <span style={{ color: 'white' }}>{displayName}</span>.
           </div>
           <div style={{ color: '#feb2b2', fontSize: '14px', marginTop: '6px' }}>
-            Guess limit reached. Continue to capital challenge.
+            ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'}) — Continue to capital challenge.
           </div>
           <button
             onClick={onContinue}
