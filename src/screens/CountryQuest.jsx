@@ -62,6 +62,8 @@ function CountryQuest({ onHome }) {
   const [questOver, setQuestOver] = useState(false);
   const [failed, setFailed] = useState(false);
   const [failReason, setFailReason] = useState(null);
+  const [silhouetteGuessLimit, setSilhouetteGuessLimit] = useState(null);
+  const [silhouetteFailed, setSilhouetteFailed] = useState(false);
 
   const sessionTimerRef = useRef(null);
   const historyRef = useRef(history);
@@ -187,6 +189,8 @@ function CountryQuest({ onHome }) {
     setQuestOver(false);
     setFailed(false);
     setFailReason(null);
+    setSilhouetteGuessLimit(cfg.silhouetteGuessLimit);
+    setSilhouetteFailed(false);
     setTimeLeft(cfg.timeLimitSec);
     setPhase('playing');
     // ensure fresh target if needed
@@ -208,18 +212,27 @@ function CountryQuest({ onHome }) {
         if (prev == null) return prev;
         if (prev <= 1) {
           clearSessionTimer();
-          const entry = buildHistoryEntry('incorrect', 'timeout');
-          setHistory(h => [...h, entry]);
-          setQuestOver(true);
-          setFailed(true);
-          setFailReason('Time is up —');
+          if (stage === STAGES.FLAG) {
+            // Flag stage timeout ends the quest
+            const entry = buildHistoryEntry('incorrect', 'timeout');
+            setHistory(h => [...h, entry]);
+            setQuestOver(true);
+            setFailed(true);
+            setFailReason('Time is up —');
+          } else if (stage === STAGES.SILHOUETTE) {
+            // Silhouette timeout - let component show failure UI
+            handleSilhouetteFailed(silhouetteLiveRef.current);
+          } else if (stage === STAGES.CAPITAL) {
+            // Capital timeout - let component show failure UI
+            handleCapitalFailed(capitalLiveRef.current);
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearSessionTimer();
-  }, [phase, questOver, config, roundKey]);
+  }, [phase, questOver, config, roundKey, stage]);
 
   // reset timeLeft on new quest
   useEffect(() => {
@@ -249,6 +262,7 @@ function CountryQuest({ onHome }) {
     setQuestOver(false);
     setFailed(false);
     setFailReason(null);
+    setSilhouetteFailed(false);
     setRoundKey(k => k + 1);
     setRoundNumber(n => n + 1);
     console.log('Secret Target Country:', next.name.common);
@@ -257,11 +271,20 @@ function CountryQuest({ onHome }) {
   const handleSkipQuest = () => {
     if (questOver) return;
     clearSessionTimer();
-    const entry = buildHistoryEntry('incorrect', 'skipped');
-    setHistory(h => [...h, entry]);
-    setQuestOver(true);
-    setFailed(true);
-    setFailReason('Skipped —');
+    if (stage === STAGES.FLAG) {
+      // Flag stage skip ends the quest
+      const entry = buildHistoryEntry('incorrect', 'skipped');
+      setHistory(h => [...h, entry]);
+      setQuestOver(true);
+      setFailed(true);
+      setFailReason('Skipped —');
+    } else if (stage === STAGES.SILHOUETTE) {
+      // Silhouette skip - let component show failure UI
+      handleSilhouetteFailed(silhouetteLiveRef.current);
+    } else if (stage === STAGES.CAPITAL) {
+      // Capital skip - let component show failure UI
+      handleCapitalFailed(capitalLiveRef.current);
+    }
   };
 
   const handleEndGame = () => {
@@ -284,6 +307,8 @@ function CountryQuest({ onHome }) {
     setQuestOver(false);
     setFailed(false);
     setFailReason(null);
+    setSilhouetteFailed(false);
+    setSilhouetteGuessLimit(config.silhouetteGuessLimit);
     setTimeLeft(config.timeLimitSec);
     setPhase('playing');
     if (countries.length && validCca3Set.size) {
@@ -306,12 +331,25 @@ function CountryQuest({ onHome }) {
     setSilhouetteLive(0);
     setCapitalLive(0);
     setFlagLive(0);
+    setSilhouetteFailed(false);
     setStage(STAGES.SILHOUETTE);
   };
 
   const handleSilhouetteWon = (guessCount) => {
     setSilhouetteGuessCount(guessCount);
     setSilhouetteLive(guessCount);
+  };
+
+  const handleSilhouetteFailed = (guessCount) => {
+    setSilhouetteGuessCount(guessCount);
+    setSilhouetteLive(guessCount);
+    setSilhouetteFailed(true);
+    // Don't advance stage yet - let component show failure UI with continue button
+  };
+
+  const handleContinueFromSilhouette = () => {
+    setSilhouetteFailed(false);
+    setStage(STAGES.CAPITAL);
   };
 
   const handleSkipToCapital = () => {
@@ -509,8 +547,12 @@ function CountryQuest({ onHome }) {
               worldPolygons={worldPolygons}
               target={silhouetteTarget}
               onWon={handleSilhouetteWon}
+              onFailed={handleSilhouetteFailed}
+              onContinue={handleContinueFromSilhouette}
               onGuessCountChange={setSilhouetteLive}
               disabled={questOver}
+              gameFailed={silhouetteFailed}
+              guessLimit={silhouetteGuessLimit}
               onFocusCountry={(country) => { focusCountryRef.current = (c) => focusCountry(c); }}
             />
           )}
@@ -523,6 +565,7 @@ function CountryQuest({ onHome }) {
               silhouetteGuessCount={silhouetteGuessCount || silhouetteLive}
               onWon={handleCapitalWon}
               onFailed={handleCapitalFailed}
+              onPlayAgain={handleSkipToFlag}
               onGuessCountChange={setCapitalLive}
               disabled={questOver}
             />

@@ -8,7 +8,7 @@ import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
 
-function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon, onGuessCountChange, disabled, onFocusCountry }) {
+function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon, onFailed, onContinue, onGuessCountChange, disabled, onFocusCountry, gameFailed = false, guessLimit = null }) {
   const globeRef = useRef();
   const containerRef = useRef();
   const [globeSize, setGlobeSize] = useState(400);
@@ -123,10 +123,14 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     setTried(prev => [...prev, { cca3, name, distanceKm, direction, lat: cLat, lng: cLng, color }]);
     setLastHint(`${name} is ${distanceKm.toLocaleString()} km from the target ${getArrowEmoji(direction)}.`);
     setPopup({ cca3, name, distanceKm, direction, lat: cLat, lng: cLng, color, isWin: false, isTried: true });
+    // Check guess limit after wrong guess
+    if (guessLimit && nextCount >= guessLimit && onFailed) {
+      onFailed(nextCount);
+    }
   };
 
   const handleSubmitCountry = (country) => {
-    if (disabled || gameWon) return;
+    if (disabled || gameWon || gameFailed) return;
     handleGuessByCca3(country.cca3);
     setGuessValue('');
   };
@@ -210,9 +214,9 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     if (!popup) return;
     const cca3 = popup.cca3;
     if (tried.some(t => t.cca3 === cca3)) return;
-    if (gameWon) return;
+    if (gameWon || gameFailed) return;
     handleGuessByCca3(cca3);
-  }, [popup, tried, gameWon, handleGuessByCca3]);
+  }, [popup, tried, gameWon, gameFailed, handleGuessByCca3]);
 
   const renderPopupElement = React.useCallback((d) => {
     if (!d) return null;
@@ -226,7 +230,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
         : 'Selected — confirm your guess';
     const accentColor = isWin ? '#22c55e' : (d.color || '#3182ce');
     const textColor = isWin ? '#68d391' : (d.color || '#a0aec0');
-    const canConfirm = !isWin && !isTried && !gameWon;
+    const canConfirm = !isWin && !isTried && !gameWon && !gameFailed;
     return (
       <div
         style={{
@@ -326,14 +330,14 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   };
 
   const handlePolygonClick = (polygon) => {
-    if (disabled || gameWon) return;
+    if (disabled || gameWon || gameFailed) return;
     const cca3 = polygon.properties?.cca3;
     if (!cca3) return;
     showPopupForCca3(cca3);
   };
 
   const handleMissClick = ({ lat, lng }) => {
-    if (disabled || gameWon) return;
+    if (disabled || gameWon || gameFailed) return;
     const altitude = globeRef.current?.pointOfView()?.altitude ?? 2.5;
     const toleranceKm = Math.min(600, Math.max(20, altitude * 200));
     const nearest = findNearestCountry(countryIndex, lat, lng);
@@ -412,7 +416,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   const handleHintPick = (opt) => {
     const cca3 = opt.cca3;
     const lower = cca3.toLowerCase();
-    if (disabled || hintTried.has(lower) || gameWon) return;
+    if (disabled || hintTried.has(lower) || gameWon || gameFailed) return;
     const targetCca3 = target?.properties?.cca3 || target?.cca3;
     if (cca3 === targetCca3) {
       const nextCount = guessCount + 1;
@@ -448,6 +452,31 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           <div style={{ color: '#a0aec0', fontSize: '14px', marginTop: '6px' }}>
             {advancing ? 'Advancing to capital challenge in 2 seconds...' : 'Get ready for the capital!'}
           </div>
+        </div>
+      ) : gameFailed ? (
+        <div style={{ background: '#742a2a', padding: '14px 18px', borderRadius: '8px', marginBottom: '12px', border: '1px solid #9b2c2c' }}>
+          <div style={{ color: '#fed7d7', fontWeight: 'bold', fontSize: '18px' }}>
+            The country was <span style={{ color: 'white' }}>{displayName}</span> ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})
+          </div>
+          <div style={{ color: '#feb2b2', fontSize: '14px', marginTop: '6px' }}>
+            Guess limit reached. Continue to capital challenge.
+          </div>
+          <button
+            onClick={onContinue}
+            style={{
+              marginTop: '12px',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              border: 'none',
+              background: '#3182ce',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+            }}
+          >
+            Continue to capital →
+          </button>
         </div>
       ) : (
         <p style={{ color: '#a0aec0', marginBottom: '10px', fontSize: '14px' }}>
@@ -505,7 +534,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
             el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
             el.textContent = d.text;
             el.addEventListener('click', () => {
-              if (disabled || gameWon) return;
+              if (disabled || gameWon || gameFailed) return;
               showPopupForCca3(d.cca3);
             });
             return el;
@@ -539,7 +568,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           onChange={e => setGuessValue(e.target.value)}
           placeholder="Type a country name or click globe..."
           list="country-list-silhouette"
-          disabled={disabled || gameWon}
+          disabled={disabled || gameWon || gameFailed}
           style={{ padding: '10px', width: '250px', borderRadius: '5px', border: 'none', fontSize: '16px' }}
         />
         <datalist id="country-list-silhouette">
@@ -549,15 +578,15 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
         </datalist>
         <button
           type="submit"
-          disabled={disabled || gameWon || !countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase())}
+          disabled={disabled || gameWon || gameFailed || !countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase())}
           style={{
             padding: '10px 20px',
             marginLeft: '10px',
             borderRadius: '5px',
             border: 'none',
-            background: !disabled && !gameWon && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? '#48bb78' : '#4a5568',
+            background: !disabled && !gameWon && !gameFailed && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? '#48bb78' : '#4a5568',
             color: 'white',
-            cursor: !disabled && !gameWon && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? 'pointer' : 'not-allowed',
+            cursor: !disabled && !gameWon && !gameFailed && countries.some(c => c.name.common.toLowerCase() === guessValue.trim().toLowerCase()) ? 'pointer' : 'not-allowed',
             fontSize: '16px',
           }}
         >
@@ -565,7 +594,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
         </button>
       </form>
 
-      {!disabled && !gameWon && !showHint && (
+      {!disabled && !gameWon && !gameFailed && !showHint && (
         <button
           onClick={openHint}
           style={{
@@ -583,7 +612,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           💡 Hint (4 choices)
         </button>
       )}
-      {showHint && !gameWon && !disabled && (
+      {showHint && !gameWon && !gameFailed && !disabled && (
         <div style={{ marginBottom: '16px' }}>
           <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '6px' }}>Pick the country for this silhouette:</div>
           <HintChoices
@@ -591,7 +620,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
             correct={targetCca3}
             triedSet={hintTried}
             onPick={handleHintPick}
-            disabled={disabled || gameWon}
+            disabled={disabled || gameWon || gameFailed}
           />
           <button
             onClick={() => setShowHint(false)}

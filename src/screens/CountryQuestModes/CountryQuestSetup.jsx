@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 
 function CountryQuestSetup({ onStart }) {
-  const [numGames, setNumGames] = useState('5'); // '5','10','15','20','unlimited','custom' - default 5 per spec
+  const [numGames, setNumGames] = useState('5');
   const [customNumGames, setCustomNumGames] = useState('25');
-  const [timeLimit, setTimeLimit] = useState('none'); // 'none','15','30','60','120','custom'
+  const [timeLimit, setTimeLimit] = useState('none');
   const [customTime, setCustomTime] = useState('45');
+  const [silhouetteGuessLimit, setSilhouetteGuessLimit] = useState('6');
+  const [customSilhouetteLimit, setCustomSilhouetteLimit] = useState('6');
 
   const getNumGamesValue = () => {
     if (numGames === 'unlimited') return null;
@@ -24,10 +26,20 @@ function CountryQuestSetup({ onStart }) {
     return parseInt(timeLimit, 10);
   };
 
+  const getSilhouetteGuessLimitValue = () => {
+    if (silhouetteGuessLimit === 'unlimited') return null;
+    if (silhouetteGuessLimit === 'custom') {
+      const n = parseInt(customSilhouetteLimit, 10);
+      return Number.isFinite(n) && n > 0 ? n : 6;
+    }
+    return parseInt(silhouetteGuessLimit, 10);
+  };
+
   const handleStart = () => {
     const payload = {
       numGames: getNumGamesValue(),
       timeLimitSec: getTimeLimitValue(),
+      silhouetteGuessLimit: getSilhouetteGuessLimitValue(),
     };
     onStart(payload);
   };
@@ -148,6 +160,56 @@ function CountryQuestSetup({ onStart }) {
             )}
           </div>
           <div style={{ fontSize: '12px', color: '#718096', marginTop: '4px' }}>No timer = unlimited time per quest. Otherwise countdown per quest (silhouette + capital + flag); at 0 the quest is marked incorrect and the answer is revealed.</div>
+        </div>
+
+        <div>
+          <div style={labelStyle}>Silhouette guess limit</div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {['3', '4', '5', '6', '8', '10', 'unlimited'].map(v => (
+              <button
+                key={v}
+                onClick={() => setSilhouetteGuessLimit(v)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #4a5568',
+                  background: silhouetteGuessLimit === v ? '#3182ce' : '#2d3748',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                }}
+              >
+                {v === 'unlimited' ? '∞ Unlimited' : v}
+              </button>
+            ))}
+            <button
+              onClick={() => setSilhouetteGuessLimit('custom')}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #4a5568',
+                background: silhouetteGuessLimit === 'custom' ? '#3182ce' : '#2d3748',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '13px',
+              }}
+            >
+              Custom
+            </button>
+            {silhouetteGuessLimit === 'custom' && (
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={customSilhouetteLimit}
+                onChange={e => setCustomSilhouetteLimit(e.target.value)}
+                style={{ ...selectStyle, width: '80px' }}
+              />
+            )}
+          </div>
+          <div style={{ fontSize: '12px', color: '#718096', marginTop: '4px' }}>Max guesses for silhouette stage. Unlimited = no limit. When limit reached, country is revealed and you continue to capital stage.</div>
         </div>
       </div>
 
