@@ -189,6 +189,7 @@ function FindCountryGame({ onHome }) {
       setLastHint(null);
       setPopup(null);
       setPopupPosition({ x: 20, y: 20 });
+      setLastClickedCca3(null);
     }
   }, [roundKey]);
 
