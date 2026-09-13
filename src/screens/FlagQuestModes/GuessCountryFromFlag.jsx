@@ -49,6 +49,7 @@ function GuessCountryFromFlag({
   const [popupPosition, setPopupPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [lastGuessedCca3, setLastGuessedCca3] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   useEffect(() => {
@@ -58,6 +59,7 @@ function GuessCountryFromFlag({
     setHintFlagErrors(new Set());
     setPopup(null);
     setPopupPosition({ x: 20, y: 20 });
+    setLastGuessedCca3(null);
   }, [target]);
 
   // Reset per-round state when target changes or session round key changes
@@ -78,6 +80,7 @@ function GuessCountryFromFlag({
       setHintFlagErrors(new Set());
       setPopup(null);
       setPopupPosition({ x: 20, y: 20 });
+      setLastGuessedCca3(null);
       if (globeRef.current) {
         globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
       }
@@ -116,6 +119,7 @@ function GuessCountryFromFlag({
     setHintFlagErrors(new Set());
     setPopup(null);
     setPopupPosition({ x: 20, y: 20 });
+    setLastGuessedCca3(null);
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
     }
@@ -388,6 +392,7 @@ function GuessCountryFromFlag({
   }, [resetPopupPosition, isInputDisabled, guessesExhausted, handlePopupConfirm, sessionActive, sessionRoundOver, gameFailed, sessionFailReason]);
 
   const showPopupForCca3 = (cca3) => {
+    setLastGuessedCca3(cca3);
     const feat = features.find(f => f.properties.cca3 === cca3);
     if (!feat) return;
     const countryObj = countries.find(c => c.cca3 === cca3);
@@ -445,17 +450,28 @@ function GuessCountryFromFlag({
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
         const isTarget = (sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && target && target.properties.cca3.toLowerCase() === cca3;
         const matched = tried.find(t => t.cca3.toLowerCase() === cca3);
+        const isCurrent = lastGuessedCca3 && lastGuessedCca3.toLowerCase() === cca3;
         let color = 'rgba(0, 0, 0, 0)';
-        if (isTarget) color = '#22c55e';
-        else if (matched) color = matched.color;
+        let strokeColor = 'rgba(0, 0, 0, 0)';
+        if (isCurrent) {
+          strokeColor = '#ff00ff';
+          color = 'rgba(255, 0, 255, 0.3)';
+        } else if (isTarget) {
+          color = '#22c55e';
+          strokeColor = '#000';
+        } else if (matched) {
+          color = matched.color;
+          strokeColor = '#000';
+        }
         return {
           ...polygon,
           cca3,
           color,
+          strokeColor,
           altitude: isTarget ? 0.03 : matched ? 0.02 : 0.01,
         };
       });
-  }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed]);
+  }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed, lastGuessedCca3]);
 
   const openHint = () => {
     if (!target) return;
@@ -612,7 +628,7 @@ function GuessCountryFromFlag({
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor={showBorders ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0)'}
+          polygonStrokeColor={(d) => d.strokeColor || 'rgba(0, 0, 0, 0)'}
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={300}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
