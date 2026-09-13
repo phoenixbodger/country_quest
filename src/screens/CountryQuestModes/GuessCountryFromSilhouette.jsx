@@ -27,6 +27,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   const [popupPosition, setPopupPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [lastGuessedCca3, setLastGuessedCca3] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   // Reset when target changes
@@ -56,6 +57,13 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // Track last guessed country for pink border
+  useEffect(() => {
+    if (tried.length > 0) {
+      setLastGuessedCca3(tried[tried.length - 1].cca3);
+    }
+  }, [tried.length, tried]);
 
   const countryIndex = useMemo(() => buildCountryIndex(features), [features]);
 
@@ -129,7 +137,8 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     handleSubmitCountry(found);
   };
 
-  const focusCountry = ({ lat, lng }) => {
+  const focusCountry = ({ lat, lng, cca3 }) => {
+    if (cca3) setLastGuessedCca3(cca3);
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
     }
@@ -292,6 +301,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   }, [resetPopupPosition, gameWon, handlePopupConfirm]);
 
   const showPopupForCca3 = (cca3) => {
+    setLastGuessedCca3(cca3);
     const feat = features.find(f => f.properties.cca3 === cca3);
     if (!feat) return;
     const countryObj = countries.find(c => c.cca3 === cca3);
@@ -347,17 +357,27 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
         const targetCca3 = (target?.properties?.cca3 || target?.cca3 || '').toLowerCase();
         const isTarget = gameWon && targetCca3 === cca3;
         const matched = tried.find(t => t.cca3.toLowerCase() === cca3);
+        const isCurrent = lastGuessedCca3 && lastGuessedCca3.toLowerCase() === cca3;
         let color = 'rgba(0, 0, 0, 0)';
-        if (isTarget) color = '#22c55e';
-        else if (matched) color = matched.color;
+        let strokeColor = 'rgba(0, 0, 0, 0)';
+        if (isCurrent) {
+          strokeColor = '#ff00ff';
+        } else if (isTarget) {
+          color = '#22c55e';
+          strokeColor = '#000';
+        } else if (matched) {
+          color = matched.color;
+          strokeColor = '#000';
+        }
         return {
           ...polygon,
           cca3,
           color,
+          strokeColor,
           altitude: isTarget ? 0.03 : matched ? 0.02 : 0.01,
         };
       });
-  }, [worldPolygons, tried, gameWon, target]);
+  }, [worldPolygons, tried, gameWon, target, lastGuessedCca3]);
 
   const openHint = () => {
     if (!target) return;
@@ -446,7 +466,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor={showBorders ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0)'}
+          polygonStrokeColor={(d) => d.strokeColor || 'rgba(0, 0, 0, 0)'}
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={500}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
@@ -589,7 +609,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
               <button
                 key={t.cca3}
                 onClick={() => {
-                  focusCountry(t);
+                  focusCountry({ lat: t.lat, lng: t.lng, cca3: t.cca3 });
                   setPopup({ cca3: t.cca3, name: t.name, lat: t.lat, lng: t.lng, distanceKm: t.distanceKm, direction: t.direction, color: t.color, isWin: false, isTried: true });
                 }}
                 style={{

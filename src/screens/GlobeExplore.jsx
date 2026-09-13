@@ -52,6 +52,7 @@ function GlobeExplore({ onHome }) {
           cca3,
           color: isSelected ? '#22c55e' : 'rgba(0, 0, 0, 0)',
           altitude: isSelected ? 0.02 : 0.01,
+          strokeColor: isSelected ? '#ff00ff' : 'rgba(0, 0, 0, 0)',
         };
       });
   }, [worldPolygons, selected]);
@@ -216,7 +217,7 @@ function GlobeExplore({ onHome }) {
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor={showBorders ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0)"}
+          polygonStrokeColor={(d) => d.strokeColor || 'rgba(0, 0, 0, 0)'}
           polygonsTransitionDuration={300}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
           onPolygonClick={handlePolygonClick}

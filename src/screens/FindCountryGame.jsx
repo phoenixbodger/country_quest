@@ -25,6 +25,7 @@ function FindCountryGame({ onHome }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showBorders, setShowBorders] = useState(false);
   const [showNames, setShowNames] = useState(false);
+  const [lastClickedCca3, setLastClickedCca3] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
   // session state
@@ -190,6 +191,13 @@ function FindCountryGame({ onHome }) {
       setPopupPosition({ x: 20, y: 20 });
     }
   }, [roundKey]);
+
+  // Track last clicked/guessed country for pink border
+  useEffect(() => {
+    if (tried.length > 0) {
+      setLastClickedCca3(tried[tried.length - 1].cca3);
+    }
+  }, [tried.length, tried]);
 
   const getArrowEmoji = (dir) => {
     const arrows = { N: "⬆️", NE: "↗️", E: "➡️", SE: "↘️", S: "⬇️", SW: "↙️", W: "⬅️", NW: "↖️" };
@@ -496,7 +504,8 @@ function FindCountryGame({ onHome }) {
     setPopupPosition({ x: 20, y: 20 });
   };
 
-  const focusCountry = ({ lat, lng }) => {
+  const focusCountry = ({ lat, lng, cca3 }) => {
+    setLastClickedCca3(cca3);
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
     }
@@ -521,17 +530,27 @@ function FindCountryGame({ onHome }) {
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
         const isTarget = roundOver && target && target.properties.cca3.toLowerCase() === cca3;
         const matched = tried.find(t => t.cca3.toLowerCase() === cca3);
+        const isCurrent = lastClickedCca3 && lastClickedCca3.toLowerCase() === cca3;
         let color = 'rgba(0, 0, 0, 0)';
-        if (isTarget) color = '#22c55e';
-        else if (matched) color = matched.color;
+        let strokeColor = 'rgba(0, 0, 0, 0)';
+        if (isCurrent) {
+          strokeColor = '#ff00ff';
+        } else if (isTarget) {
+          color = '#22c55e';
+          strokeColor = '#000';
+        } else if (matched) {
+          color = matched.color;
+          strokeColor = '#000';
+        }
         return {
           ...polygon,
           cca3,
           color,
+          strokeColor,
           altitude: isTarget ? 0.03 : matched ? 0.02 : 0.01,
         };
       });
-  }, [worldPolygons, tried, roundOver, target]);
+  }, [worldPolygons, tried, roundOver, target, lastClickedCca3]);
 
   const formatTime = (s) => {
     if (s == null) return '—';
@@ -672,7 +691,7 @@ function FindCountryGame({ onHome }) {
               polygonCapColor="color"
               polygonAltitude="altitude"
               polygonSideColor="rgba(0, 0, 0, 0)"
-              polygonStrokeColor={showBorders ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0)"}
+              polygonStrokeColor={(d) => d.strokeColor || 'rgba(0, 0, 0, 0)'}
               polygonHoverColor={roundOver ? "rgba(0, 0, 0, 0)" : "rgba(37, 99, 235, 0.8)"}
               polygonsTransitionDuration={300}
               polygonLabel={showNames ? (p => `<b>${p.properties?.name || ''}</b>`) : null}
@@ -732,7 +751,7 @@ function FindCountryGame({ onHome }) {
                 {[...tried].reverse().map(t => (
                   <button
                     key={t.cca3}
-                    onClick={() => focusCountry(t)}
+                    onClick={() => focusCountry({ lat: t.lat, lng: t.lng, cca3: t.cca3 })}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
