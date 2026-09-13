@@ -535,6 +535,7 @@ function FindCountryGame({ onHome }) {
         let strokeColor = 'rgba(0, 0, 0, 0)';
         if (isCurrent) {
           strokeColor = '#ff00ff';
+          color = 'rgba(255, 0, 255, 0.3)';
         } else if (isTarget) {
           color = '#22c55e';
           strokeColor = '#000';
