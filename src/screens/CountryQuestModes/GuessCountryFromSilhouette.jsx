@@ -19,6 +19,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   const [lastHint, setLastHint] = useState(null);
   const [showBorders, setShowBorders] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
+  const [showHighlightOnClick, setShowHighlightOnClick] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
@@ -326,7 +327,6 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   }, [resetPopupPosition, gameWon, handlePopupConfirm]);
 
   const showPopupForCca3 = (cca3) => {
-    setLastGuessedCca3(cca3);
     const feat = features.find(f => f.properties.cca3 === cca3);
     if (!feat) return;
     const countryObj = countries.find(c => c.cca3 === cca3);
@@ -350,6 +350,14 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     const cca3 = polygon.properties?.cca3;
     if (!cca3) return;
     showPopupForCca3(cca3);
+    if (showHighlightOnClick) {
+      const feat = features.find(f => f.properties.cca3 === cca3);
+      if (feat) {
+        const countryObj = countries.find(c => c.cca3 === cca3);
+        const [lat, lng] = countryObj?.latlng || feat.properties.latlng || [0, 0];
+        setHighlightCountry({ cca3, lat, lng });
+      }
+    }
   };
 
   const handleMissClick = ({ lat, lng }) => {
@@ -359,6 +367,12 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     const nearest = findNearestCountry(countryIndex, lat, lng);
     if (nearest && nearest.distanceKm <= toleranceKm) {
       showPopupForCca3(nearest.cca3);
+      if (showHighlightOnClick) {
+        const feat = features.find(f => f.properties.cca3 === nearest.cca3);
+        const countryObj = countries.find(c => c.cca3 === nearest.cca3);
+        const [nLat, nLng] = countryObj?.latlng || feat?.properties?.latlng || [lat, lng];
+        setHighlightCountry({ cca3: nearest.cca3, lat: nLat, lng: nLng });
+      }
     }
   };
 
@@ -513,6 +527,10 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           <input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
           Show All Countries
         </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
+          <input type="checkbox" checked={showHighlightOnClick} onChange={e => setShowHighlightOnClick(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+          Highlight on click
+        </label>
       </div>
 
       <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px', position: 'relative' }}>
@@ -552,6 +570,12 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
             el.addEventListener('click', () => {
               if (disabled || gameWon || gameFailed) return;
               showPopupForCca3(d.cca3);
+              if (showHighlightOnClick) {
+                const feat = features.find(f => f.properties.cca3 === d.cca3);
+                const countryObj = countries.find(c => c.cca3 === d.cca3);
+                const [lat, lng] = countryObj?.latlng || feat?.properties?.latlng || [0, 0];
+                setHighlightCountry({ cca3: d.cca3, lat, lng });
+              }
             });
             return el;
           }}
