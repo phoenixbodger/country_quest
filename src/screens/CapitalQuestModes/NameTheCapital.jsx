@@ -22,6 +22,7 @@ function NameTheCapital({
   sessionFailed = false,
   sessionFailReason = null,
   sessionRoundKey = 0,
+  numHintChoices = 6,
 }) {
   const { uniqueCapitals, capitalToCountries } = capitalIndex || { uniqueCapitals: [], capitalToCountries: new Map() };
   const [guessValue, setGuessValue] = useState('');
@@ -342,7 +343,7 @@ function NameTheCapital({
     if (sessionActive && onSessionHintUsed && !sessionHintUsed) onSessionHintUsed();
     const correct = hintCorrect;
     const exclude = new Set((target.capital || []).map(normalizeCap));
-    const opts = getHintCapitals(correct, uniqueCapitals, 3, exclude);
+    const opts = getHintCapitals(correct, uniqueCapitals, numHintChoices - 1, exclude);
     setHintOptions(opts);
     setHintTried(new Set());
     setHintReveal(null);
@@ -487,7 +488,7 @@ function NameTheCapital({
                 opacity: isInputDisabled ? 0.5 : 1,
               }}
             >
-              💡 Hint (4 choices)
+              💡 Hint ({numHintChoices} choices)
             </button>
           ) : (
             <div style={{ marginBottom: '16px' }}>

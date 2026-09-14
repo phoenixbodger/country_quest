@@ -27,6 +27,7 @@ function NameTheCountry({
   sessionFailReason = null,
   sessionRoundKey = 0,
   onFocusCountry = null,
+  numHintChoices = 6,
 }) {
   const globeRef = useRef();
   const containerRef = useRef();
@@ -42,10 +43,13 @@ function NameTheCountry({
   const [showHint, setShowHint] = useState(false);
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
+  const [hintFlagErrors, setHintFlagErrors] = useState(new Set());
+  const [triedFlagErrors, setTriedFlagErrors] = useState(new Set());
   const [popup, setPopup] = useState(null);
   const [popupPosition, setPopupPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [lastGuessedCca3, setLastGuessedCca3] = useState(null);
   const [highlightCountry, setHighlightCountry] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
 
@@ -58,6 +62,18 @@ function NameTheCountry({
     setPopupPosition({ x: 20, y: 20 });
   }, [target?.properties?.cca3]);
 
+  // Show failure popup when round ends in failure
+  useEffect(() => {
+    const failed = sessionActive ? (sessionRoundOver && sessionFailed) : gameFailed;
+    if (!failed || !target) return;
+    const targetCca3 = target?.properties?.cca3;
+    const targetFeature = features.find(f => f.properties.cca3 === targetCca3);
+    const targetCountry = countries.find(c => c.cca3 === targetCca3);
+    const targetName = target?.properties?.name || targetCountry?.name?.common || targetCca3;
+    const [lat, lng] = targetCountry?.latlng || targetFeature?.properties?.latlng || target?.properties?.latlng || [0, 0];
+    setPopup({ cca3: targetCca3, name: targetName, lat, lng, isWin: false, isTried: false, isFailure: true });
+  }, [sessionActive, sessionRoundOver, sessionFailed, gameFailed, target, features, countries]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -68,7 +84,7 @@ function NameTheCountry({
     return () => observer.disconnect();
   }, []);
 
-  const countryIndex = useMemo(() => buildCountryIndex(worldPolygons.length ? worldPolygons : features), [features, worldPolygons]);
+  const countryIndex = useMemo(() => buildCountryIndex(features), [features]);
 
   // Reset per-round state when session round changes
   useEffect(() => {
@@ -81,9 +97,12 @@ function NameTheCountry({
       setShowHint(false);
       setHintOptions([]);
       setHintTried(new Set());
+      setHintFlagErrors(new Set());
+      setTriedFlagErrors(new Set());
       setGuessValue('');
       setPopup(null);
       setPopupPosition({ x: 20, y: 20 });
+      setLastGuessedCca3(null);
       setHighlightCountry(null);
       if (globeRef.current) {
         globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
@@ -104,9 +123,12 @@ function NameTheCountry({
     setShowHint(false);
     setHintOptions([]);
     setHintTried(new Set());
+    setHintFlagErrors(new Set());
+    setTriedFlagErrors(new Set());
     setGuessValue('');
     setPopup(null);
     setPopupPosition({ x: 20, y: 20 });
+    setLastGuessedCca3(null);
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 1000);
     }
@@ -116,6 +138,8 @@ function NameTheCountry({
     const arrows = { N: '⬆️', NE: '↗️', E: '➡️', SE: '↘️', S: '⬇️', SW: '↙️', W: '⬅️', NW: '↖️' };
     return arrows[dir] || dir;
   };
+
+  const getFlagEmoji = (cca3) => countries.find(c => c.cca3 === cca3)?.flag;
 
   const effectiveWon = sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon;
   const effectiveFailed = sessionActive ? sessionFailed : gameFailed;
@@ -274,6 +298,7 @@ function NameTheCountry({
     if (!popup) return;
     const cca3 = popup.cca3;
     if (tried.some(t => t.cca3 === cca3)) return;
+    if (popup.isFailure) return;
     if (sessionActive ? sessionRoundOver : gameWon) return;
     if (guessesExhausted) return;
     handleGuessByCca3(cca3);
@@ -283,15 +308,18 @@ function NameTheCountry({
     if (!d) return null;
     const isWin = !!d.isWin;
     const isTried = !!d.isTried;
-    const title = isWin ? `🎉 ${d.name}!` : d.name;
+    const isFailure = !!d.isFailure;
+    const title = isWin ? `🎉 ${d.name}!` : isFailure ? `❌ ${d.name}` : d.name;
     const subtitle = isWin
       ? 'Correct!'
-      : isTried
-        ? `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`
-        : 'Selected — confirm your guess';
-    const accentColor = isWin ? '#22c55e' : (d.color || '#3182ce');
-    const textColor = isWin ? '#68d391' : (d.color || '#a0aec0');
-    const canConfirm = !isWin && !isTried && !isInputDisabled && !guessesExhausted;
+      : isFailure
+        ? `Incorrect. End of Round. The answer was ${d.name}.`
+        : isTried
+          ? `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`
+          : 'Selected — confirm your guess';
+    const accentColor = isWin ? '#22c55e' : isFailure ? '#fc8181' : (d.color || '#3182ce');
+    const textColor = isWin ? '#68d391' : isFailure ? '#fc8181' : (d.color || '#a0aec0');
+    const canConfirm = !isWin && !isTried && !isFailure && !isInputDisabled && !guessesExhausted;
     return (
       <div
         style={{
@@ -329,6 +357,13 @@ function NameTheCountry({
           </button>
         </div>
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '6px' }}>{subtitle}</div>
+        {isTried && !isWin && (
+          <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '6px', fontSize: '13px' }}>
+            {(sessionActive ? (!sessionRoundOver && !guessesExhausted) : !gameFailed)
+               ? 'Incorrect. Please try again'
+               : `Incorrect. End of Round. The answer was ${target.properties.name}.`}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
           {!isWin && !isTried && (
             <button
@@ -371,6 +406,9 @@ function NameTheCountry({
   }, [resetPopupPosition, isInputDisabled, guessesExhausted, handlePopupConfirm]);
 
   const showPopupForCca3 = (cca3) => {
+    if (sessionActive ? sessionRoundOver : (gameWon || gameFailed)) return;
+    if (guessesExhausted) return;
+    setLastGuessedCca3(cca3);
     console.log('[NameTheCountry] showPopupForCca3', cca3, 'features', features.length, 'worldPolygons', worldPolygons.length, 'tried', tried.length);
     const feat = features.find(f => f.properties.cca3 === cca3) || worldPolygons.find(f => f.properties?.cca3 === cca3);
     console.log('[NameTheCountry] feat found', !!feat, feat?.properties?.name);
@@ -431,6 +469,7 @@ function NameTheCountry({
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
         const isTarget = (sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && target && target.properties.cca3.toLowerCase() === cca3;
         const matched = tried.find(t => t.cca3.toLowerCase() === cca3);
+        const isCurrent = lastGuessedCca3 && lastGuessedCca3.toLowerCase() === cca3;
         const isHighlighted = highlightCountry && highlightCountry.cca3 && highlightCountry.cca3.toLowerCase() === cca3;
         let color = 'rgba(0, 0, 0, 0)';
         let strokeColor = 'rgba(0, 0, 0, 0)';
@@ -439,6 +478,10 @@ function NameTheCountry({
           color = 'rgba(236, 72, 153, 0.4)';
           strokeColor = '#ec4899';
           altitude = 0.04;
+        } else if (isCurrent) {
+          strokeColor = '#ff00ff';
+          color = 'rgba(255, 0, 255, 0.3)';
+          altitude = 0.02;
         } else if (isTarget) {
           color = '#22c55e';
           strokeColor = '#000';
@@ -456,7 +499,7 @@ function NameTheCountry({
           altitude,
         };
       });
-  }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed, highlightCountry]);
+  }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed, lastGuessedCca3, highlightCountry]);
 
   const openHint = () => {
     if (!target) return;
@@ -465,10 +508,11 @@ function NameTheCountry({
     const correct = { cca3: correctCca3, name: target.properties.name };
     const pool = features.filter(f => f.properties.cca3 !== correctCca3);
     const shuffled = shuffleArray(pool);
-    const distractors = shuffled.slice(0, 3).map(f => ({ cca3: f.properties.cca3, name: f.properties.name }));
+    const distractors = shuffled.slice(0, numHintChoices - 1).map(f => ({ cca3: f.properties.cca3, name: f.properties.name }));
     const opts = shuffleArray([...distractors, correct]);
     setHintOptions(opts);
     setHintTried(new Set());
+    setHintFlagErrors(new Set());
     setShowHint(true);
   };
 
@@ -700,7 +744,7 @@ function NameTheCountry({
               marginBottom: '12px',
             }}
           >
-            💡 Hint (4 choices)
+            💡 Hint ({numHintChoices} choices)
           </button>
         )
       ) : (
@@ -719,7 +763,7 @@ function NameTheCountry({
               marginBottom: '12px',
             }}
           >
-            💡 Hint (4 choices)
+            💡 Hint ({numHintChoices} choices)
           </button>
         )
       )}
@@ -757,7 +801,7 @@ function NameTheCountry({
           <div style={{ color: effectiveFailed ? '#fc8181' : '#68d391', fontWeight: 'bold', fontSize: '15px', textAlign: 'center', marginBottom: '10px' }}>
             {effectiveFailed ? `Answer: ${target.properties.name}` : `Correct: ${target.properties.name}`} <span style={{ fontWeight: 'normal', color: '#a0aec0', fontSize: '13px' }}>— hint choices</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '10px' }}>
             {hintOptions.map((opt) => {
               const isCorrect = opt.cca3.toLowerCase() === target.properties.cca3.toLowerCase();
               const isTried = hintTried.has(opt.cca3);
@@ -765,18 +809,36 @@ function NameTheCountry({
                 <div
                   key={opt.cca3}
                   style={{
-                    padding: '8px 12px',
+                    padding: '8px',
                     borderRadius: '6px',
                     background: isCorrect ? 'rgba(72, 187, 120, 0.15)' : '#2d3748',
                     border: isCorrect ? '2px solid #48bb78' : '1px solid #4a5568',
                     color: '#e2e8f0',
-                    fontSize: '14px',
+                    fontSize: '13px',
                     textAlign: 'center',
-                    fontWeight: 'bold',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
                     opacity: isTried && !isCorrect ? 0.6 : 1,
+                    position: 'relative',
                   }}
                 >
-                  {opt.name}{isCorrect ? ' ✓' : ''}{isTried && !isCorrect ? ' ✗' : ''}
+                  {hintFlagErrors.has(opt.cca3) ? (
+                    <span style={{ fontSize: '48px' }}>{getFlagEmoji(opt.cca3) || '🏳️'}</span>
+                  ) : (
+                    <img
+                      src={`${import.meta.env.BASE_URL}maps/${opt.cca3.toLowerCase()}.svg`}
+                      alt={`Flag of ${opt.name}`}
+                      onError={() => setHintFlagErrors(prev => {
+                        const ns = new Set(prev);
+                        ns.add(opt.cca3);
+                        return ns;
+                      })}
+                      style={{ width: '90px', height: '60px', objectFit: 'contain', borderRadius: '4px' }}
+                    />
+                  )}
+                  <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{opt.name}{isCorrect ? ' ✓' : ''}{isTried && !isCorrect ? ' ✗' : ''}</span>
                 </div>
               );
             })}
@@ -843,8 +905,22 @@ function NameTheCountry({
                   borderLeft: `6px solid ${t.color}`,
                 }}
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: t.color, display: 'inline-block', flexShrink: 0 }} />
+                  {triedFlagErrors.has(t.cca3) ? (
+                    <span style={{ fontSize: '24px', lineHeight: 1 }}>{getFlagEmoji(t.cca3)}</span>
+                  ) : (
+                    <img
+                      src={`${import.meta.env.BASE_URL}maps/${t.cca3.toLowerCase()}.svg`}
+                      alt={`Flag of ${t.name}`}
+                      onError={() => setTriedFlagErrors(prev => {
+                        const ns = new Set(prev);
+                        ns.add(t.cca3);
+                        return ns;
+                      })}
+                      style={{ width: '40px', height: '27px', objectFit: 'contain', borderRadius: '3px', flexShrink: 0 }}
+                    />
+                  )}
                   {t.name}
                 </span>
                 <span style={{ color: t.color, fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>

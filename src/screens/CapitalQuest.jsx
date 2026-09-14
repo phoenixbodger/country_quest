@@ -459,6 +459,7 @@ function CapitalQuest({ onHome }) {
               sessionFailed={failed}
               sessionFailReason={failReason}
               sessionRoundKey={roundKey}
+              numHintChoices={config.numHintChoices ?? 6}
             />
           ) : (
             <NameTheCountry
@@ -480,6 +481,7 @@ function CapitalQuest({ onHome }) {
               sessionFailReason={failReason}
               sessionRoundKey={roundKey}
               onFocusCountry={(country) => { focusCountryRef.current = (c) => focusCountry(c); }}
+              numHintChoices={config.numHintChoices ?? 6}
             />
           )}
         </>
