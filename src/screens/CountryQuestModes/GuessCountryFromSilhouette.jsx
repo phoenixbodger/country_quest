@@ -454,11 +454,14 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
       handleWin(nextCount);
     } else {
       handleGuessByCca3(cca3);
-      setHintTried(prev => {
-        const ns = new Set(prev);
-        ns.add(lower);
-        return ns;
-      });
+      const newHintTried = new Set(hintTried);
+      newHintTried.add(lower);
+      setHintTried(newHintTried);
+      const wrongOptions = hintOptions.filter(o => o.cca3 !== targetCca3);
+      const allWrongTried = wrongOptions.length > 0 && wrongOptions.every(o => newHintTried.has(o.cca3.toLowerCase()));
+      if (allWrongTried && onFailed) {
+        onFailed(guessCount + 1);
+      }
     }
   };
 
