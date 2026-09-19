@@ -621,15 +621,6 @@ function NameTheCountry({
         </label>
       </div>
 
-      <button
-        onClick={() => {
-          console.log('[NameTheCountry] debug button DZA');
-          setPopup({ cca3: 'DZA', name: 'Algeria', lat: 28, lng: 3, isWin: false, isTried: false, color: '#3182ce' });
-        }}
-        style={{ padding: '6px 10px', marginBottom: '8px', background: '#744210', color: 'white', border: '1px solid #4a5568', borderRadius: '6px', cursor: 'pointer' }}
-      >
-        Debug: show Algeria popup
-      </button>
       <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px', position: 'relative' }}>
         <Globe
           ref={globeRef}
