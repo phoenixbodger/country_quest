@@ -5,8 +5,8 @@ function CountryQuestSetup({ onStart }) {
   const [customNumGames, setCustomNumGames] = useState('25');
   const [timeLimit, setTimeLimit] = useState('none');
   const [customTime, setCustomTime] = useState('45');
-  const [silhouetteGuessLimit, setSilhouetteGuessLimit] = useState('6');
-  const [customSilhouetteLimit, setCustomSilhouetteLimit] = useState('6');
+  const [guessLimitPerStage, setGuessLimitPerStage] = useState('6');
+  const [customGuessLimit, setCustomGuessLimit] = useState('6');
 
   const getNumGamesValue = () => {
     if (numGames === 'unlimited') return null;
@@ -26,20 +26,20 @@ function CountryQuestSetup({ onStart }) {
     return parseInt(timeLimit, 10);
   };
 
-  const getSilhouetteGuessLimitValue = () => {
-    if (silhouetteGuessLimit === 'unlimited') return null;
-    if (silhouetteGuessLimit === 'custom') {
-      const n = parseInt(customSilhouetteLimit, 10);
+  const getGuessLimitPerStageValue = () => {
+    if (guessLimitPerStage === 'unlimited') return null;
+    if (guessLimitPerStage === 'custom') {
+      const n = parseInt(customGuessLimit, 10);
       return Number.isFinite(n) && n > 0 ? n : 6;
     }
-    return parseInt(silhouetteGuessLimit, 10);
+    return parseInt(guessLimitPerStage, 10);
   };
 
   const handleStart = () => {
     const payload = {
       numGames: getNumGamesValue(),
       timeLimitSec: getTimeLimitValue(),
-      silhouetteGuessLimit: getSilhouetteGuessLimitValue(),
+      guessLimitPerStage: getGuessLimitPerStageValue(),
     };
     onStart(payload);
   };
@@ -163,17 +163,17 @@ function CountryQuestSetup({ onStart }) {
         </div>
 
         <div>
-          <div style={labelStyle}>Silhouette guess limit</div>
+          <div style={labelStyle}>Guess limit per stage</div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             {['3', '4', '5', '6', '8', '10', 'unlimited'].map(v => (
               <button
                 key={v}
-                onClick={() => setSilhouetteGuessLimit(v)}
+                onClick={() => setGuessLimitPerStage(v)}
                 style={{
                   padding: '8px 12px',
                   borderRadius: '6px',
                   border: '1px solid #4a5568',
-                  background: silhouetteGuessLimit === v ? '#3182ce' : '#2d3748',
+                  background: guessLimitPerStage === v ? '#3182ce' : '#2d3748',
                   color: 'white',
                   cursor: 'pointer',
                   fontWeight: 'bold',
@@ -184,12 +184,12 @@ function CountryQuestSetup({ onStart }) {
               </button>
             ))}
             <button
-              onClick={() => setSilhouetteGuessLimit('custom')}
+              onClick={() => setGuessLimitPerStage('custom')}
               style={{
                 padding: '8px 12px',
                 borderRadius: '6px',
                 border: '1px solid #4a5568',
-                background: silhouetteGuessLimit === 'custom' ? '#3182ce' : '#2d3748',
+                background: guessLimitPerStage === 'custom' ? '#3182ce' : '#2d3748',
                 color: 'white',
                 cursor: 'pointer',
                 fontWeight: 'bold',
@@ -198,18 +198,18 @@ function CountryQuestSetup({ onStart }) {
             >
               Custom
             </button>
-            {silhouetteGuessLimit === 'custom' && (
+            {guessLimitPerStage === 'custom' && (
               <input
                 type="number"
                 min="1"
                 max="20"
-                value={customSilhouetteLimit}
-                onChange={e => setCustomSilhouetteLimit(e.target.value)}
+                value={customGuessLimit}
+                onChange={e => setCustomGuessLimit(e.target.value)}
                 style={{ ...selectStyle, width: '80px' }}
               />
             )}
           </div>
-          <div style={{ fontSize: '12px', color: '#718096', marginTop: '4px' }}>Max guesses for silhouette stage. Unlimited = no limit. When limit reached, country is revealed and you continue to capital stage.</div>
+          <div style={{ fontSize: '12px', color: '#718096', marginTop: '4px' }}>Max guesses per stage (silhouette, capital, flag). Unlimited = no limit. When limit reached, the stage fails and you continue to the next stage.</div>
         </div>
       </div>
 

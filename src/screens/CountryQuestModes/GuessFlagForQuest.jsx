@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { shuffleArray } from '../../utils/capitalHelpers';
 
-function GuessFlagForQuest({ targetCountry, countries, silhouetteGuessCount, capitalGuessCount, onPlayAgain, onWon, onFailed, onGuessCountChange, disabled, questComplete }) {
+function GuessFlagForQuest({ targetCountry, countries, silhouetteGuessCount, capitalGuessCount, onPlayAgain, onWon, onFailed, onGuessCountChange, disabled, questComplete, guessLimit = null }) {
   const [guessCount, setGuessCount] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [options, setOptions] = useState([]);
@@ -49,6 +49,10 @@ function GuessFlagForQuest({ targetCountry, countries, silhouetteGuessCount, cap
       newTried.add(cca3);
       setTried(newTried);
       if (onFailed && newTried.size === options.length - 1) {
+        onFailed(nextCount);
+      }
+      // Check guess limit after wrong guess
+      if (guessLimit && nextCount >= guessLimit && onFailed) {
         onFailed(nextCount);
       }
     }

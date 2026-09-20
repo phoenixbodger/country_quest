@@ -4,7 +4,7 @@ import CapitalGuessForm from '../../components/CapitalGuessForm';
 import HintChoices from '../../components/HintChoices';
 import { normalizeCap, getHintCapitals, joinCountryNames } from '../../utils/capitalHelpers';
 
-function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhouetteGuessCount, onWon, onFailed, onGuessCountChange, disabled }) {
+function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhouetteGuessCount, onWon, onFailed, onGuessCountChange, disabled, gameFailed = false, guessLimit = null }) {
   const { uniqueCapitals, capitalToCountries } = capitalIndex || { uniqueCapitals: [], capitalToCountries: new Map() };
   const [guessValue, setGuessValue] = useState('');
   const [guesses, setGuesses] = useState([]);
@@ -36,7 +36,7 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
   }, []);
 
   const handleGuessCapital = (rawCapital) => {
-    if (disabled || gameFullyWon) return;
+    if (disabled || gameFailed || gameFullyWon) return;
     const lower = normalizeCap(rawCapital);
     if (guesses.some(g => normalizeCap(g.capital) === lower)) return;
     if (foundCapitals.has(lower)) return;
@@ -47,14 +47,22 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
     setGuessValue('');
 
     const targetLowers = (target.capital || []).map(normalizeCap);
-    if (targetLowers.includes(lower)) {
+    const isCorrect = targetLowers.includes(lower);
+
+    if (isCorrect) {
       const next = new Set(foundCapitals);
       next.add(lower);
       setFoundCapitals(next);
-      if (next.size === totalCapitals) {
+      const fullyWon = next.size === totalCapitals;
+      if (fullyWon) {
         setGameFullyWon(true);
         setShowHint(false);
-        if (onWon) onWon(guessCount + 1);
+        if (onWon) onWon(nextCount);
+      }
+
+      // Check guess limit after correct guess (if not fully won)
+      if (guessLimit && nextCount >= guessLimit && !fullyWon && onFailed) {
+        onFailed(nextCount);
       }
       return;
     }
@@ -76,12 +84,17 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
         return ns;
       });
     }
+
+    // Check guess limit after wrong guess
+    if (guessLimit && nextCount >= guessLimit && onFailed) {
+      onFailed(nextCount);
+    }
   };
 
   const handleHintPick = (opt) => {
     const cap = typeof opt === 'string' ? opt : opt.name || opt;
     const lower = normalizeCap(cap);
-    if (disabled || hintTried.has(lower) || gameFullyWon || capitalFailed) return;
+    if (disabled || gameFailed || hintTried.has(lower) || gameFullyWon || capitalFailed) return;
     const targetLowers = (target.capital || []).map(normalizeCap);
     if (targetLowers.includes(lower)) {
       const others = hintOptions
@@ -99,9 +112,15 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
       const next = new Set(foundCapitals);
       next.add(lower);
       setFoundCapitals(next);
-      if (next.size === totalCapitals) {
+      const fullyWon = next.size === totalCapitals;
+      if (fullyWon) {
         setGameFullyWon(true);
         if (onWon) onWon(nextCount);
+      }
+
+      // Check guess limit after correct hint pick (if not fully won)
+      if (guessLimit && nextCount >= guessLimit && !fullyWon && onFailed) {
+        onFailed(nextCount);
       }
       setShowHint(false);
     } else {
@@ -116,13 +135,12 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
       const allWrongTried = wrongOptions.length > 0 && wrongOptions.every(o => hintTried.has(normalizeCap(o)) || normalizeCap(o) === lower);
       if (allWrongTried) {
         setCapitalFailed(true);
-        if (onFailed) onFailed(guessCount + 1);
       }
     }
   };
 
   const openHint = () => {
-    if (!target || !uniqueCapitals.length) return;
+    if (!target || !uniqueCapitals.length || gameFailed) return;
     const correct = hintCorrect;
     const exclude = new Set((target.capital || []).map(normalizeCap));
     const opts = getHintCapitals(correct, uniqueCapitals, 3, exclude);
@@ -219,6 +237,15 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
             {remainingCapitals.length === 1 ? `One more to go: can you find the last one?` : `Still need: ${remainingCapitals.join(', ')} — keep guessing!`}
           </div>
         </div>
+      ) : gameFailed ? (
+        <div style={{ background: '#742a2a', padding: '14px 18px', borderRadius: '8px', marginBottom: '12px', border: '1px solid #9b2c2c' }}>
+          <div style={{ color: '#fed7d7', fontWeight: 'bold', fontSize: '16px' }}>
+            Guess limit reached — The capital{totalCapitals > 1 ? 's' : ''} of {target.name.common} {totalCapitals > 1 ? `are ${target.capital.join(', ')}` : `is ${target.capital[0]}`}
+          </div>
+          <div style={{ color: '#feb2b2', fontSize: '14px', marginTop: '6px' }}>
+            ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'}) — Continue to flag challenge.
+          </div>
+        </div>
       ) : null}
 
       {hintReveal && (
@@ -258,7 +285,7 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
         </div>
       )}
 
-      {!gameFullyWon && !disabled && (
+      {!gameFullyWon && !disabled && !gameFailed && (
         <>
           <CapitalGuessForm
             capitals={uniqueCapitals}
@@ -293,7 +320,7 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, onPlayAgain, silhou
                 correct={hintCorrect}
                 triedSet={hintTried}
                 onPick={handleHintPick}
-                disabled={disabled || gameFullyWon}
+                disabled={disabled || gameFullyWon || gameFailed}
               />
               <button
                 onClick={() => setShowHint(false)}

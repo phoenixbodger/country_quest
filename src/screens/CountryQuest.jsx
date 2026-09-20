@@ -62,8 +62,9 @@ function CountryQuest({ onHome }) {
   const [questOver, setQuestOver] = useState(false);
   const [failed, setFailed] = useState(false);
   const [failReason, setFailReason] = useState(null);
-  const [silhouetteGuessLimit, setSilhouetteGuessLimit] = useState(null);
+  const [guessLimitPerStage, setGuessLimitPerStage] = useState(null);
   const [silhouetteFailed, setSilhouetteFailed] = useState(false);
+  const [capitalFailed, setCapitalFailed] = useState(false);
 
   const sessionTimerRef = useRef(null);
   const historyRef = useRef(history);
@@ -189,8 +190,9 @@ function CountryQuest({ onHome }) {
     setQuestOver(false);
     setFailed(false);
     setFailReason(null);
-    setSilhouetteGuessLimit(cfg.silhouetteGuessLimit);
+    setGuessLimitPerStage(cfg.guessLimitPerStage);
     setSilhouetteFailed(false);
+    setCapitalFailed(false);
     setTimeLeft(cfg.timeLimitSec);
     setPhase('playing');
     // ensure fresh target if needed
@@ -263,6 +265,7 @@ function CountryQuest({ onHome }) {
     setFailed(false);
     setFailReason(null);
     setSilhouetteFailed(false);
+    setCapitalFailed(false);
     setRoundKey(k => k + 1);
     setRoundNumber(n => n + 1);
     console.log('Secret Target Country:', next.name.common);
@@ -308,7 +311,8 @@ function CountryQuest({ onHome }) {
     setFailed(false);
     setFailReason(null);
     setSilhouetteFailed(false);
-    setSilhouetteGuessLimit(config.silhouetteGuessLimit);
+    setCapitalFailed(false);
+    setGuessLimitPerStage(config.guessLimitPerStage);
     setTimeLeft(config.timeLimitSec);
     setPhase('playing');
     if (countries.length && validCca3Set.size) {
@@ -332,6 +336,7 @@ function CountryQuest({ onHome }) {
     setCapitalLive(0);
     setFlagLive(0);
     setSilhouetteFailed(false);
+    setCapitalFailed(false);
     setStage(STAGES.SILHOUETTE);
   };
 
@@ -364,9 +369,15 @@ function CountryQuest({ onHome }) {
   const handleCapitalFailed = (guessCount) => {
     setCapitalGuessCount(guessCount);
     setCapitalLive(guessCount);
+    setCapitalFailed(true);
   };
 
   const handleSkipToFlag = () => {
+    setStage(STAGES.FLAG);
+  };
+
+  const handleContinueFromCapital = () => {
+    setCapitalFailed(false);
     setStage(STAGES.FLAG);
   };
 
@@ -552,7 +563,7 @@ function CountryQuest({ onHome }) {
               onGuessCountChange={setSilhouetteLive}
               disabled={questOver}
               gameFailed={silhouetteFailed}
-              guessLimit={silhouetteGuessLimit}
+              guessLimit={guessLimitPerStage}
               onFocusCountry={(country) => { focusCountryRef.current = (c) => focusCountry(c); }}
             />
           )}
@@ -567,7 +578,9 @@ function CountryQuest({ onHome }) {
               onFailed={handleCapitalFailed}
               onPlayAgain={handleSkipToFlag}
               onGuessCountChange={setCapitalLive}
-              disabled={questOver}
+              disabled={questOver || capitalFailed}
+              gameFailed={capitalFailed}
+              guessLimit={guessLimitPerStage}
             />
           )}
 
@@ -610,7 +623,7 @@ function CountryQuest({ onHome }) {
             </div>
           )}
 
-          {stage === STAGES.CAPITAL && (capitalGuessCount > 0) && !questOver && (
+          {stage === STAGES.CAPITAL && (capitalGuessCount > 0) && !questOver && !capitalFailed && (
             <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
               <div style={{
                 display: 'inline-flex',
@@ -648,6 +661,41 @@ function CountryQuest({ onHome }) {
             </div>
           )}
 
+          {capitalFailed && (
+            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                background: 'rgba(252, 129, 129, 0.15)',
+                border: '1px solid #fc8181',
+                color: '#fc8181',
+                fontSize: '13px',
+                fontWeight: 'bold',
+              }}>
+                <span style={{ fontSize: '14px' }}>✗</span>
+                Guess limit reached — Capital stage failed
+              </div>
+              <button
+                onClick={handleContinueFromCapital}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#3182ce',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                }}
+              >
+                Continue to flag →
+              </button>
+            </div>
+          )}
+
           {stage === STAGES.FLAG && targetCountry && !questFailed && (
             <GuessFlagForQuest
               key={`flag-${targetCountry?.cca3}-${roundKey}`}
@@ -661,6 +709,7 @@ function CountryQuest({ onHome }) {
               disabled={questOver}
               questComplete={questComplete}
               onPlayAgain={handleNextQuest}
+              guessLimit={guessLimitPerStage}
             />
           )}
 
