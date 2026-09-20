@@ -20,6 +20,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   const [showBorders, setShowBorders] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
   const [showHighlightOnClick, setShowHighlightOnClick] = useState(false);
+  const [showGraticule, setShowGraticule] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
@@ -388,6 +389,25 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
       }));
   }, [worldPolygons, showLabels]);
 
+  const graticuleLabelsData = useMemo(() => {
+    if (!showGraticule) return [];
+    const labels = [];
+    for (let lat = -80; lat <= 80; lat += 10) {
+      if (lat === 0) continue;
+      labels.push({ lat, lng: 0, text: `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, type: 'graticule' });
+      labels.push({ lat, lng: 180, text: `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, type: 'graticule' });
+    }
+    for (let lng = -170; lng <= 170; lng += 20) {
+      if (lng === 0) continue;
+      labels.push({ lat: 0, lng, text: `${Math.abs(lng)}°${lng > 0 ? 'E' : 'W'}`, type: 'graticule' });
+    }
+    labels.push({ lat: 0, lng: 0, text: '0°', type: 'graticule' });
+    labels.push({ lat: 0, lng: 180, text: '180°', type: 'graticule' });
+    return labels;
+  }, [showGraticule]);
+
+  const allLabelsData = useMemo(() => [...labelsData, ...graticuleLabelsData], [labelsData, graticuleLabelsData]);
+
   const polygonData = useMemo(() => {
     return worldPolygons
       .filter(p => p.geometry && (p.geometry.type === 'Polygon' || p.geometry.type === 'MultiPolygon'))
@@ -534,6 +554,10 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           <input type="checkbox" checked={showHighlightOnClick} onChange={e => setShowHighlightOnClick(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
           Highlight on click
         </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
+          <input type="checkbox" checked={showGraticule} onChange={e => setShowGraticule(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+          Show graticule
+        </label>
       </div>
 
       <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px', position: 'relative' }}>
@@ -553,38 +577,43 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
           onPolygonClick={handlePolygonClick}
           onGlobeClick={handleMissClick}
-          htmlElementsData={labelsData}
+          htmlElementsData={allLabelsData}
           htmlLat="lat"
           htmlLng="lng"
           htmlAltitude={0.015}
           htmlTransitionDuration={300}
           htmlElement={d => {
             const el = document.createElement('div');
-            el.style.color = 'rgba(255,255,255,0.95)';
-            el.style.fontSize = '11px';
-            el.style.fontWeight = '700';
+            const isGraticule = d.type === 'graticule';
+            el.style.color = isGraticule ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.95)';
+            el.style.fontSize = isGraticule ? '10px' : '11px';
+            el.style.fontWeight = isGraticule ? '500' : '700';
             el.style.whiteSpace = 'nowrap';
-            el.style.pointerEvents = 'auto';
-            el.style.cursor = 'pointer';
+            el.style.pointerEvents = isGraticule ? 'none' : 'auto';
+            el.style.cursor = isGraticule ? 'default' : 'pointer';
             el.style.userSelect = 'none';
             el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
             el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
             el.textContent = d.text;
-            el.addEventListener('click', () => {
-              if (disabled || gameWon || gameFailed) return;
-              showPopupForCca3(d.cca3);
-              if (showHighlightOnClick) {
-                const feat = features.find(f => f.properties.cca3 === d.cca3);
-                const countryObj = countries.find(c => c.cca3 === d.cca3);
-                const [lat, lng] = countryObj?.latlng || feat?.properties?.latlng || [0, 0];
-                setHighlightCountry({ cca3: d.cca3, lat, lng });
-              }
-            });
+            if (!isGraticule) {
+              el.addEventListener('click', () => {
+                if (disabled || gameWon || gameFailed) return;
+                showPopupForCca3(d.cca3);
+                if (showHighlightOnClick) {
+                  const feat = features.find(f => f.properties.cca3 === d.cca3);
+                  const countryObj = countries.find(c => c.cca3 === d.cca3);
+                  const [lat, lng] = countryObj?.latlng || feat?.properties?.latlng || [0, 0];
+                  setHighlightCountry({ cca3: d.cca3, lat, lng });
+                }
+              });
+            }
             return el;
           }}
           enableAutoRotate={false}
           atmosphereColor="#38bdf8"
           atmosphereAltitude={0.15}
+
+          showGraticules={showGraticule}
         />
         {popup && (
           <div

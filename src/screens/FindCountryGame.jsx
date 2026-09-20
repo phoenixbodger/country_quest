@@ -25,6 +25,7 @@ function FindCountryGame({ onHome }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showBorders, setShowBorders] = useState(false);
   const [showNames, setShowNames] = useState(false);
+  const [showGraticule, setShowGraticule] = useState(false);
   const [lastClickedCca3, setLastClickedCca3] = useState(null);
   const [highlightCountry, setHighlightCountry] = useState(null);
   const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
@@ -568,7 +569,7 @@ function FindCountryGame({ onHome }) {
     }
   };
 
-  const polygonData = useMemo(() => {
+const polygonData = useMemo(() => {
     return worldPolygons
       .filter(p => p.geometry && (p.geometry.type === 'Polygon' || p.geometry.type === 'MultiPolygon'))
       .map(polygon => {
@@ -597,6 +598,7 @@ function FindCountryGame({ onHome }) {
           strokeColor = '#000';
           altitude = 0.02;
         }
+
         return {
           ...polygon,
           cca3,
@@ -606,6 +608,23 @@ function FindCountryGame({ onHome }) {
         };
       });
   }, [worldPolygons, tried, roundOver, target, lastClickedCca3]);
+
+  const graticuleLabelsData = useMemo(() => {
+    if (!showGraticule) return [];
+    const labels = [];
+    for (let lat = -80; lat <= 80; lat += 10) {
+      if (lat === 0) continue;
+      labels.push({ lat, lng: 0, text: `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, type: 'graticule' });
+      labels.push({ lat, lng: 180, text: `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, type: 'graticule' });
+    }
+    for (let lng = -170; lng <= 170; lng += 20) {
+      if (lng === 0) continue;
+      labels.push({ lat: 0, lng, text: `${Math.abs(lng)}°${lng > 0 ? 'E' : 'W'}`, type: 'graticule' });
+    }
+    labels.push({ lat: 0, lng: 0, text: '0°', type: 'graticule' });
+    labels.push({ lat: 0, lng: 180, text: '180°', type: 'graticule' });
+    return labels;
+  }, [showGraticule]);
 
   const formatTime = (s) => {
     if (s == null) return '—';
@@ -733,6 +752,15 @@ function FindCountryGame({ onHome }) {
               />
               Show country names
             </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={showGraticule}
+                onChange={e => setShowGraticule(e.target.checked)}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              Show graticule
+            </label>
           </div>
 
           <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px', position: 'relative' }}>
@@ -755,6 +783,27 @@ function FindCountryGame({ onHome }) {
               enableAutoRotate={false}
               atmosphereColor="#38bdf8"
               atmosphereAltitude={0.15}
+
+              showGraticules={showGraticule}
+
+              htmlElementsData={graticuleLabelsData}
+              htmlLat="lat"
+              htmlLng="lng"
+              htmlAltitude={0.015}
+              htmlTransitionDuration={300}
+              htmlElement={d => {
+                const el = document.createElement('div');
+                el.style.color = 'rgba(255,255,255,0.6)';
+                el.style.fontSize = '10px';
+                el.style.fontWeight = '500';
+                el.style.whiteSpace = 'nowrap';
+                el.style.pointerEvents = 'none';
+                el.style.userSelect = 'none';
+                el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
+                el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
+                el.textContent = d.text;
+                return el;
+              }}
             />
             {popup && (
               <div
