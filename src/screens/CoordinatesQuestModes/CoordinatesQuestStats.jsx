@@ -1,10 +1,5 @@
 import React from 'react';
-
-const formatLatLng = (lat, lng) => {
-  const latDir = lat >= 0 ? 'N' : 'S';
-  const lngDir = lng >= 0 ? 'E' : 'W';
-  return `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lng).toFixed(4)}° ${lngDir}`;
-};
+import { formatLatLng } from '../../utils/formatCoords';
 
 function CoordinatesQuestStats({ stats, config, onReplaySame, onChangeSettings, onHome, onCountryClick }) {
   const total = stats.history.length;

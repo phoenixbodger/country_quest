@@ -4,6 +4,7 @@ import Globe from 'react-globe.gl';
 import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { getProximityColor } from '../../distanceColors';
+import { formatLatLng } from '../../utils/formatCoords';
 
 const getArrowEmoji = (dir) => {
   const arrows = { N: '⬆️', NE: '↗️', E: '➡️', SE: '↘️', S: '⬇️', SW: '↙️', W: '⬅️', NW: '↖️' };
@@ -242,6 +243,11 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           </button>
         </div>
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '6px' }}>{subtitle}</div>
+        {isTried && !isWin && !isFailure && !alreadyGuessed && (
+          <div style={{ color: '#a0aec0', fontSize: '12px', marginTop: '4px', fontFamily: 'monospace' }}>
+            {formatLatLng(d.lat, d.lng)}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
           {isTried && !alreadyGuessed && (
             <div style={{ flex: 1, padding: '7px 10px', borderRadius: '6px', background: '#2d3748', color: '#a0aec0', fontWeight: 'bold', fontSize: '13px', textAlign: 'center' }}>
@@ -465,6 +471,9 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: t.color, display: 'inline-block', flexShrink: 0 }} />
                   {t.name}
+                  <span style={{ color: '#a0aec0', fontSize: '12px', fontFamily: 'monospace' }}>
+                    {' '}{formatLatLng(t.lat, t.lng)}
+                  </span>
                 </span>
                 <span style={{ color: t.color, fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
               </button>
