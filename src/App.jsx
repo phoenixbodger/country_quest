@@ -5,6 +5,7 @@ import FindCountryGame from './screens/FindCountryGame';
 import FlagQuest from './screens/FlagQuest';
 import CapitalQuest from './screens/CapitalQuest';
 import GlobeExplore from './screens/GlobeExplore';
+import CoordinatesQuest from './screens/CoordinatesQuest';
 import HowToPlay from './screens/HowToPlay';
 
 function App() {
@@ -23,6 +24,8 @@ function App() {
       return <CapitalQuest onHome={goHome} />;
     case 'globe':
       return <GlobeExplore onHome={goHome} />;
+    case 'coordinates':
+      return <CoordinatesQuest onHome={goHome} />;
     case 'howtoplay':
       return <HowToPlay onHome={goHome} onSelect={setScreen} />;
     default:
