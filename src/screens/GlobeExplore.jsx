@@ -79,10 +79,13 @@ function GlobeExplore({ onHome }) {
       labels.push({ lat, lng: 0, text: `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, type: 'graticule' });
       labels.push({ lat, lng: 180, text: `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, type: 'graticule' });
     }
-    // Longitude lines: show at equator
-    for (let lng = -170; lng <= 170; lng += 20) {
-      if (lng === 0) continue; // skip prime meridian
-      labels.push({ lat: 0, lng, text: `${Math.abs(lng)}°${lng > 0 ? 'E' : 'W'}`, type: 'graticule' });
+    // Longitude lines: show at multiple latitudes (like latitude at 0°/180°)
+    const longitudeLatitudes = [60, 30, 0, -30, -60];
+    for (const lat of longitudeLatitudes) {
+      for (let lng = -170; lng <= 170; lng += 20) {
+        if (lng === 0) continue; // skip prime meridian
+        labels.push({ lat, lng, text: `${Math.abs(lng)}°${lng > 0 ? 'E' : 'W'}`, type: 'graticule' });
+      }
     }
     // Add prime meridian and 180° labels
     labels.push({ lat: 0, lng: 0, text: '0°', type: 'graticule' });
