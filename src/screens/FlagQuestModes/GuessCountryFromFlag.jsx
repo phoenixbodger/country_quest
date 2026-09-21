@@ -8,6 +8,7 @@ import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
 import CoordinatesHint from '../../components/CoordinatesHint';
 import { formatLatLng } from '../../utils/formatCoords';
+import { darkenGraticule } from '../../utils/graticule';
 
 function GuessCountryFromFlag({
   countries,
@@ -41,6 +42,7 @@ function GuessCountryFromFlag({
   const [lastHint, setLastHint] = useState(null);
   const [showBorders, setShowBorders] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
+  const [showGraticule, setShowGraticule] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
@@ -467,6 +469,25 @@ function GuessCountryFromFlag({
       }));
   }, [worldPolygons, showLabels]);
 
+  const graticuleLabelsData = useMemo(() => {
+    if (!showGraticule) return [];
+    const labels = [];
+    for (let lat = -80; lat <= 80; lat += 10) {
+      if (lat === 0) continue;
+      labels.push({ lat, lng: 0, text: `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, type: 'graticule' });
+      labels.push({ lat, lng: 180, text: `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, type: 'graticule' });
+    }
+    for (let lng = -170; lng <= 170; lng += 20) {
+      if (lng === 0) continue;
+      labels.push({ lat: 0, lng, text: `${Math.abs(lng)}°${lng > 0 ? 'E' : 'W'}`, type: 'graticule' });
+    }
+    labels.push({ lat: 0, lng: 0, text: '0°', type: 'graticule' });
+    labels.push({ lat: 0, lng: 180, text: '180°', type: 'graticule' });
+    return labels;
+  }, [showGraticule]);
+
+  const allLabelsData = useMemo(() => [...labelsData, ...graticuleLabelsData], [labelsData, graticuleLabelsData]);
+
   const polygonData = useMemo(() => {
     return worldPolygons
       .filter(p => p.geometry && (p.geometry.type === 'Polygon' || p.geometry.type === 'MultiPolygon'))
@@ -648,6 +669,10 @@ function GuessCountryFromFlag({
           <input type="checkbox" checked={showLabels} onChange={e => setShowLabels(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
           Show All Countries
         </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
+          <input type="checkbox" checked={showGraticule} onChange={e => setShowGraticule(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+          Show graticule
+        </label>
       </div>
 
       <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '560px', position: 'relative' }}>
@@ -667,11 +692,13 @@ function GuessCountryFromFlag({
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
           onPolygonClick={handlePolygonClick}
           onGlobeClick={handleMissClick}
-          htmlElementsData={labelsData}
+          htmlElementsData={allLabelsData}
           htmlLat="lat"
           htmlLng="lng"
           htmlAltitude={0.015}
           htmlTransitionDuration={300}
+          showGraticules={showGraticule}
+          onGlobeReady={() => darkenGraticule(globeRef)}
           htmlElement={d => {
             const el = document.createElement('div');
             el.style.color = 'rgba(255,255,255,0.95)';
