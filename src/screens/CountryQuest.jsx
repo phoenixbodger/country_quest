@@ -65,6 +65,7 @@ function CountryQuest({ onHome }) {
   const [guessLimitPerStage, setGuessLimitPerStage] = useState(null);
   const [silhouetteFailed, setSilhouetteFailed] = useState(false);
   const [capitalFailed, setCapitalFailed] = useState(false);
+  const [coordsHintUsed, setCoordsHintUsed] = useState(false);
 
   const sessionTimerRef = useRef(null);
   const historyRef = useRef(history);
@@ -88,6 +89,8 @@ function CountryQuest({ onHome }) {
   useEffect(() => { capitalLiveRef.current = capitalLive; }, [capitalLive]);
   useEffect(() => { flagLiveRef.current = flagLive; }, [flagLive]);
   useEffect(() => { questOverRef.current = questOver; }, [questOver]);
+  const coordsHintUsedRef = useRef(false);
+  useEffect(() => { coordsHintUsedRef.current = coordsHintUsed; }, [coordsHintUsed]);
 
   const clearSessionTimer = () => {
     if (sessionTimerRef.current) {
@@ -145,6 +148,7 @@ function CountryQuest({ onHome }) {
       result,
       guesses: { silhouette: s, capital: c, flag: f, total },
       reason,
+      hintUsed: coordsHintUsedRef.current,
       targetLat: t?.latlng?.[0],
       targetLng: t?.latlng?.[1],
       targetCca3: t?.cca3 || '',
@@ -193,6 +197,7 @@ function CountryQuest({ onHome }) {
     setGuessLimitPerStage(cfg.guessLimitPerStage);
     setSilhouetteFailed(false);
     setCapitalFailed(false);
+    setCoordsHintUsed(false);
     setTimeLeft(cfg.timeLimitSec);
     setPhase('playing');
     // ensure fresh target if needed
@@ -266,6 +271,7 @@ function CountryQuest({ onHome }) {
     setFailReason(null);
     setSilhouetteFailed(false);
     setCapitalFailed(false);
+    setCoordsHintUsed(false);
     setRoundKey(k => k + 1);
     setRoundNumber(n => n + 1);
     console.log('Secret Target Country:', next.name.common);
@@ -312,6 +318,7 @@ function CountryQuest({ onHome }) {
     setFailReason(null);
     setSilhouetteFailed(false);
     setCapitalFailed(false);
+    setCoordsHintUsed(false);
     setGuessLimitPerStage(config.guessLimitPerStage);
     setTimeLeft(config.timeLimitSec);
     setPhase('playing');
@@ -337,6 +344,7 @@ function CountryQuest({ onHome }) {
     setFlagLive(0);
     setSilhouetteFailed(false);
     setCapitalFailed(false);
+    setCoordsHintUsed(false);
     setStage(STAGES.SILHOUETTE);
   };
 
@@ -415,6 +423,7 @@ function CountryQuest({ onHome }) {
       result: 'correct',
       guesses: { silhouette: s, capital: c, flag: f, total },
       reason: 'completed',
+      hintUsed: coordsHintUsedRef.current,
       targetLat: t?.latlng?.[0],
       targetLng: t?.latlng?.[1],
       targetCca3: t?.cca3 || '',
@@ -447,6 +456,7 @@ function CountryQuest({ onHome }) {
     history,
     correct: history.filter(h => h.result === 'correct').length,
     incorrect: history.filter(h => h.result === 'incorrect').length,
+    hintsUsed: history.filter(h => h.hintUsed).length,
   };
 
   const headerStats = (
@@ -474,6 +484,7 @@ function CountryQuest({ onHome }) {
       <span style={{ color: '#4a5568' }}>|</span>
       <span style={{ color: '#68d391' }}>✔ {stats.correct}</span>
       <span style={{ color: '#fc8181' }}>✘ {stats.incorrect}</span>
+      {coordsHintUsed && <span style={{ color: '#63b3ed' }}>🗺️ hint used</span>}
     </div>
   );
 
@@ -564,6 +575,7 @@ function CountryQuest({ onHome }) {
               disabled={questOver}
               gameFailed={silhouetteFailed}
               guessLimit={guessLimitPerStage}
+              onCoordsHint={() => { if (!coordsHintUsedRef.current) setCoordsHintUsed(true); }}
               onFocusCountry={(country) => { focusCountryRef.current = (c) => focusCountry(c); }}
             />
           )}

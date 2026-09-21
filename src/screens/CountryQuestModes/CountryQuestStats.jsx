@@ -34,6 +34,7 @@ function CountryQuestStats({ stats, config, onReplaySame, onChangeSettings, onHo
           <span>Total: <b style={{ color: 'white' }}>{total}</b></span>
           <span>Correct: <b style={{ color: 'white' }}>{correct}/{total}</b> {total ? `(${Math.round(correct / total * 100)}%)` : ''}</span>
           <span>Avg guesses: <b style={{ color: 'white' }}>{avgGuesses}</b></span>
+          <span>🗺️ Coordinates hints: <b style={{ color: '#63b3ed' }}>{stats.hintsUsed ?? 0}</b></span>
         </div>
       </div>
 
@@ -48,6 +49,7 @@ function CountryQuestStats({ stats, config, onReplaySame, onChangeSettings, onHo
                 <th style={{ padding: '6px 8px' }}>Result</th>
                 <th style={{ padding: '6px 8px' }}>Total</th>
                 <th style={{ padding: '6px 8px' }}>S / C / F</th>
+                <th style={{ padding: '6px 8px' }}>Hint</th>
                 <th style={{ padding: '6px 8px' }}>Reason</th>
               </tr>
             </thead>
@@ -79,6 +81,7 @@ function CountryQuestStats({ stats, config, onReplaySame, onChangeSettings, onHo
                     <td style={{ padding: '6px 8px', color: '#a0aec0' }} title={`Total ${g.total}: Silhouette ${g.silhouette}, Capital ${g.capital}, Flag ${g.flag}`}>
                       S:{g.silhouette} C:{g.capital} F:{g.flag}
                     </td>
+                    <td style={{ padding: '6px 8px', color: '#63b3ed', fontWeight: 'bold' }}>{h.hintUsed ? '✔' : '—'}</td>
                     <td style={{ padding: '6px 8px', color: '#a0aec0' }}>{h.reason}</td>
                   </tr>
                 );

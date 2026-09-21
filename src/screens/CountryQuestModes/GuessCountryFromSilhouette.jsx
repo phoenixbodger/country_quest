@@ -9,7 +9,7 @@ import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
 import { darkenGraticule } from '../../utils/graticule';
 
-function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon, onFailed, onContinue, onGuessCountChange, disabled, onFocusCountry, gameFailed = false, guessLimit = null }) {
+function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon, onFailed, onContinue, onGuessCountChange, disabled, onFocusCountry, onCoordsHint = null, gameFailed = false, guessLimit = null }) {
   const globeRef = useRef();
   const containerRef = useRef();
   const [globeSize, setGlobeSize] = useState(400);
@@ -25,6 +25,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   const [showHint, setShowHint] = useState(false);
   const [hintOptions, setHintOptions] = useState([]);
   const [hintTried, setHintTried] = useState(new Set());
+  const [showCoordsHint, setShowCoordsHint] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [popup, setPopup] = useState(null);
   const [popupPosition, setPopupPosition] = useState({ x: 20, y: 20 });
@@ -43,6 +44,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     setShowHint(false);
     setHintOptions([]);
     setHintTried(new Set());
+    setShowCoordsHint(false);
     setGuessValue('');
     setAdvancing(false);
     setPopup(null);
@@ -78,10 +80,22 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     return arrows[dir] || dir;
   };
 
+  const formatCoords = (lat, lng) => {
+    const latDir = lat >= 0 ? 'N' : 'S';
+    const lngDir = lng >= 0 ? 'E' : 'W';
+    return `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lng).toFixed(4)}° ${lngDir}`;
+  };
+
+  const handleShowCoordsHint = () => {
+    setShowCoordsHint(true);
+    if (onCoordsHint) onCoordsHint();
+  };
+
   const handleWin = (nextCount) => {
     setGameWon(true);
     setLastHint(null);
     setShowHint(false);
+    setShowCoordsHint(false);
     setAdvancing(true);
     if (onGuessCountChange) onGuessCountChange(nextCount);
     if (onWon) {
@@ -668,23 +682,39 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
         </button>
       </form>
 
-      {!disabled && !gameWon && !gameFailed && !showHint && (
-        <button
-          onClick={openHint}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '6px',
-            border: '1px solid #4a5568',
-            background: '#2d3748',
-            color: '#63b3ed',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            marginBottom: '12px',
-          }}
-        >
-          💡 Hint (4 choices)
-        </button>
+      {!disabled && !gameWon && !gameFailed && (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+          {showHint ? (
+            <button
+              onClick={() => setShowHint(false)}
+              style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #4a5568', background: '#2d3748', color: '#a0aec0', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+            >
+              ✕ Hide choices hint
+            </button>
+          ) : (
+            <button
+              onClick={openHint}
+              style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #4a5568', background: '#2d3748', color: '#63b3ed', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+            >
+              💡 Hint (4 choices)
+            </button>
+          )}
+          {showCoordsHint ? (
+            <button
+              onClick={() => setShowCoordsHint(false)}
+              style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #4a5568', background: '#2d3748', color: '#a0aec0', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+            >
+              ✕ Hide coordinates
+            </button>
+          ) : (
+            <button
+              onClick={handleShowCoordsHint}
+              style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #4a5568', background: '#2d3748', color: '#63b3ed', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+            >
+              🗺️ Coordinates hint
+            </button>
+          )}
+        </div>
       )}
       {showHint && !gameWon && !gameFailed && !disabled && (
         <div style={{ marginBottom: '16px' }}>
@@ -696,12 +726,16 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
             onPick={handleHintPick}
             disabled={disabled || gameWon || gameFailed}
           />
-          <button
-            onClick={() => setShowHint(false)}
-            style={{ marginTop: '8px', padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#4a5568', color: 'white', cursor: 'pointer', fontSize: '13px' }}
-          >
-            Hide hint
-          </button>
+        </div>
+      )}
+      {showCoordsHint && !gameWon && !gameFailed && !disabled && (
+        <div style={{ marginBottom: '16px', background: '#1a202c', border: '1px solid #2d3748', borderRadius: '8px', padding: '10px 14px' }}>
+          <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '4px' }}>
+            Coordinates hint — where is this country's centre?
+          </div>
+          <div style={{ fontFamily: 'monospace', color: '#63b3ed', fontSize: '20px', fontWeight: 'bold' }}>
+            {target?.properties?.latlng ? formatCoords(target.properties.latlng[0], target.properties.latlng[1]) : ''}
+          </div>
         </div>
       )}
 
