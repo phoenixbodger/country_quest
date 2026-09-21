@@ -33,7 +33,7 @@ const GAMES = [
     id: 'coordinates',
     emoji: '📍',
     title: 'Coordinates Quest',
-    subtitle: '',
+    subtitle: 'Lat/Long challenge',
     description: 'We show latitude & longitude — you find the country on the 3D globe. Every miss gives distance & direction hints.',
   },
   {

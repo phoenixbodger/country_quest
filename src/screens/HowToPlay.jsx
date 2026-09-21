@@ -36,23 +36,6 @@ const SECTIONS = [
     ],
   },
   {
-    id: 'coordinates',
-    emoji: '📍',
-    title: 'Coordinates Quest',
-    subtitle: 'Lat/Long challenge',
-    target: 'coordinates',
-    buttonLabel: 'Play Coordinates Quest',
-    intro: 'We give you latitude & longitude — you find the country on the 3D globe.',
-    steps: [
-      'A large coordinate display shows the target (e.g. "40.46° N, 3.70° W"). Your job: click the matching country on the globe.',
-      'Click any country to guess. Wrong guesses show distance in km + a compass arrow (e.g. "France is 890 km away ↗️") and a proximity color — greener = closer.',
-      'History list records every guess with its coordinates, distance & arrow — click an entry to centre the globe on that country.',
-      'Toggles: "Show borders" for outlines, "Show country names" for persistent labels, "Show graticule" for lat/long grid lines. Scroll to zoom on small islands.',
-      'Customise each session: number of rounds (5–20 or ∞ unlimited), max guesses per question (1, 3, 5, or unlimited), and optional timer (15 s – 120 s or none).',
-      '💡 Hint gives 6 country names to choose from. Skip moves to the next coordinate. End Game anytime to see your stats: accuracy, avg guesses, and full history.',
-    ],
-  },
-  {
     id: 'flag',
     emoji: '🚩',
     title: 'Flag Quest',
@@ -78,6 +61,23 @@ const SECTIONS = [
       'Mode 1 — Name the Capital: We show a country name (e.g. “What is the capital of Japan?”). Type its capital — only real capitals are accepted. Wrong guesses show “That capital belongs to…”. Hint gives 4 capitals to choose from. Some countries have multiple capitals — find them all.',
       'Mode 2 — Name the Country (globe): We show a capital (e.g. “Lima”). Guess which country it belongs to — type or click the globe to fill the box. Wrong guesses show distance & direction on the globe. Hint gives 4 countries.',
       'Switch modes with the tabs at the top of the Capital Quest screen.',
+    ],
+  },
+  {
+    id: 'coordinates',
+    emoji: '📍',
+    title: 'Coordinates Quest',
+    subtitle: 'Lat/Long challenge',
+    target: 'coordinates',
+    buttonLabel: 'Play Coordinates Quest',
+    intro: 'We give you latitude & longitude — you find the country on the 3D globe.',
+    steps: [
+      'A large coordinate display shows the target (e.g. "40.46° N, 3.70° W"). Your job: click the matching country on the globe.',
+      'Click any country to guess. Wrong guesses show distance in km + a compass arrow (e.g. "France is 890 km away ↗️") and a proximity color — greener = closer.',
+      'History list records every guess with its coordinates, distance & arrow — click an entry to centre the globe on that country.',
+      'Toggles: "Show borders" for outlines, "Show country names" for persistent labels, "Show graticule" for lat/long grid lines. Scroll to zoom on small islands.',
+      'Customise each session: number of rounds (5–20 or ∞ unlimited), max guesses per question (1, 3, 5, or unlimited), and optional timer (15 s – 120 s or none).',
+      '💡 Hint gives 6 country names to choose from. Skip moves to the next coordinate. End Game anytime to see your stats: accuracy, avg guesses, and full history.',
     ],
   },
   {
@@ -107,7 +107,7 @@ function HowToPlay({ onHome, onSelect }) {
   return (
     <GameShell title="📖 How to Play" onHome={onHome}>
       <p style={{ color: '#a0aec0', fontSize: '15px', marginBottom: '20px', lineHeight: 1.5 }}>
-        Country Quest has five experiences. Pick what you want to learn — shapes, flags, capitals, or just explore.
+        Country Quest has six experiences. Pick what you want to learn — shapes, flags, capitals, coordinates, or just explore.
         Every guessing game lets you click the 3D globe to fill the answer box, and gives hints when you’re stuck.
       </p>
 
@@ -125,7 +125,7 @@ function HowToPlay({ onHome, onSelect }) {
           <li><span style={{ color: 'white', fontWeight: 600 }}>Globe is your helper:</span> click any country on the globe to put its name in the guess box — you don’t have to type.</li>
           <li><span style={{ color: 'white', fontWeight: 600 }}>Zoom for islands:</span> scroll to zoom in — small islands get much bigger and easier to click. Hover shows the name; toggle persistent names if needed.</li>
           <li><span style={{ color: 'white', fontWeight: 600 }}>Distance & arrows:</span> wrong guesses tell you distance in km + compass arrow (⬆️ N, ↗️ NE, ➡️ E, ↘️ SE, etc.). Follow the arrows to narrow in.</li>
-          <li><span style={{ color: 'white', fontWeight: 600 }}>Colors:</span> in Country Quest, history dots/cards are colored by proximity — greener = closer.</li>
+          <li><span style={{ color: 'white', fontWeight: 600 }}>Colors:</span> in Country Quest, Find Country Game, & Coordinates Quest, history dots/cards are colored by proximity — greener = closer.</li>
           <li><span style={{ color: 'white', fontWeight: 600 }}>Hints:</span> every mode has a 💡 Hint button — usually 4 or 6 choices — the correct answer is hidden among them.</li>
           <li><span style={{ color: 'white', fontWeight: 600 }}>History:</span> click any previous guess to centre the globe on that country.</li>
         </ul>
