@@ -30,18 +30,18 @@ const GAMES = [
     description: 'Two modes: name the capital for a country, or guess the country from its capital on the globe.',
   },
   {
-    id: 'globe',
-    emoji: '🌐',
-    title: 'Globe',
-    subtitle: '',
-    description: 'Free explore — spin, zoom, search and click any country to see its flag, capital, and facts.',
-  },
-  {
     id: 'coordinates',
     emoji: '📍',
     title: 'Coordinates Quest',
     subtitle: '',
     description: 'We show latitude & longitude — you find the country on the 3D globe. Every miss gives distance & direction hints.',
+  },
+  {
+    id: 'globe',
+    emoji: '🌐',
+    title: 'Globe',
+    subtitle: '',
+    description: 'Free explore — spin, zoom, search and click any country to see its flag, capital, and facts.',
   },
 ];
 
