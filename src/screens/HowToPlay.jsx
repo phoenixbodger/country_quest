@@ -36,6 +36,23 @@ const SECTIONS = [
     ],
   },
   {
+    id: 'coordinates',
+    emoji: '📍',
+    title: 'Coordinates Quest',
+    subtitle: 'Lat/Long challenge',
+    target: 'coordinates',
+    buttonLabel: 'Play Coordinates Quest',
+    intro: 'We give you latitude & longitude — you find the country on the 3D globe.',
+    steps: [
+      'A large coordinate display shows the target (e.g. "40.46° N, 3.70° W"). Your job: click the matching country on the globe.',
+      'Click any country to guess. Wrong guesses show distance in km + a compass arrow (e.g. "France is 890 km away ↗️") and a proximity color — greener = closer.',
+      'History list records every guess with its coordinates, distance & arrow — click an entry to centre the globe on that country.',
+      'Toggles: "Show borders" for outlines, "Show country names" for persistent labels, "Show graticule" for lat/long grid lines. Scroll to zoom on small islands.',
+      'Customise each session: number of rounds (5–20 or ∞ unlimited), max guesses per question (1, 3, 5, or unlimited), and optional timer (15 s – 120 s or none).',
+      '💡 Hint gives 6 country names to choose from. Skip moves to the next coordinate. End Game anytime to see your stats: accuracy, avg guesses, and full history.',
+    ],
+  },
+  {
     id: 'flag',
     emoji: '🚩',
     title: 'Flag Quest',
