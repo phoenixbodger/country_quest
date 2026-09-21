@@ -7,6 +7,8 @@ import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
 import { darkenGraticule } from '../../utils/graticule';
+import CoordinatesHint from '../../components/CoordinatesHint';
+import { formatLatLng } from '../../utils/formatCoords';
 
 function NameTheCountry({
   countries,
@@ -789,6 +791,14 @@ function NameTheCountry({
           </button>
         )
       )}
+      {target && (sessionActive ? !sessionRoundOver && !guessesExhausted : !(gameWon || gameFailed)) && (
+        <CoordinatesHint
+          key={target.properties.cca3}
+          lat={target.properties.latlng?.[0] ?? 0}
+          lng={target.properties.latlng?.[1] ?? 0}
+          onUsed={sessionActive && onSessionHintUsed ? onSessionHintUsed : undefined}
+        />
+      )}
       {showHint && !(sessionActive ? sessionRoundOver : (gameWon || gameFailed)) && !guessesExhausted && (
         <div style={{ marginBottom: '16px' }}>
           <div style={{ color: '#a0aec0', fontSize: '14px', marginBottom: '6px' }}>Pick the country for capital {capitalDisplay}:</div>
@@ -944,6 +954,7 @@ function NameTheCountry({
                     />
                   )}
                   {t.name}
+                  <span style={{ color: '#a0aec0', fontSize: '12px', fontFamily: 'monospace' }}>{' '}{formatLatLng(t.lat, t.lng)}</span>
                 </span>
                 <span style={{ color: t.color, fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
               </button>
@@ -975,7 +986,9 @@ function NameTheCountry({
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ec4899', display: 'inline-block', flexShrink: 0 }} />
-                  {target.properties.name} <span style={{ color: '#ec4899', fontSize: '12px' }}>✓ Correct answer</span>
+                  {target.properties.name}
+                  <span style={{ color: '#a0aec0', fontSize: '12px', fontFamily: 'monospace' }}>{' '}{formatLatLng(target.properties.latlng?.[0] ?? 0, target.properties.latlng?.[1] ?? 0)}</span>
+                  <span style={{ color: '#ec4899', fontSize: '12px' }}>✓ Correct answer</span>
                 </span>
                 <span style={{ color: '#ec4899', fontWeight: 'bold' }}>—</span>
               </button>
