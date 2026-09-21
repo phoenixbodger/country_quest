@@ -7,6 +7,7 @@ import { useBorderedEarthTexture } from '../useBorderedEarthTexture';
 import FindCountrySetup from './FindCountryGameModes/FindCountrySetup';
 import FindCountryStats from './FindCountryGameModes/FindCountryStats';
 import { getProximityColor } from '../distanceColors';
+import { darkenGraticule } from '../utils/graticule';
 
 function FindCountryGame({ onHome }) {
   const globeRef = useRef();
@@ -785,6 +786,7 @@ const polygonData = useMemo(() => {
               atmosphereAltitude={0.15}
 
               showGraticules={showGraticule}
+              onGlobeReady={() => darkenGraticule(globeRef)}
 
               htmlElementsData={graticuleLabelsData}
               htmlLat="lat"

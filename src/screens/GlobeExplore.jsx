@@ -4,6 +4,7 @@ import GameShell from '../components/GameShell';
 import { buildCountryIndex, findNearestCountry } from '../nearestCountry';
 import { useBorderedEarthTexture } from '../useBorderedEarthTexture';
 import CountryOutlineThumb from '../components/CountryOutlineThumb';
+import { darkenGraticule } from '../utils/graticule';
 
 function GlobeExplore({ onHome }) {
   const globeRef = useRef();
@@ -295,6 +296,7 @@ function GlobeExplore({ onHome }) {
           atmosphereAltitude={0.15}
 
           showGraticules={showGraticule}
+          onGlobeReady={() => darkenGraticule(globeRef)}
         />
       </div>
 

@@ -6,6 +6,7 @@ import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
+import { darkenGraticule } from '../../utils/graticule';
 
 function NameTheCountry({
   countries,
@@ -694,6 +695,7 @@ function NameTheCountry({
           atmosphereAltitude={0.15}
 
           showGraticules={showGraticule}
+          onGlobeReady={() => darkenGraticule(globeRef)}
         />
         {popup && (
           <div

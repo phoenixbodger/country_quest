@@ -5,6 +5,7 @@ import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { getProximityColor } from '../../distanceColors';
 import { formatLatLng } from '../../utils/formatCoords';
+import { darkenGraticule } from '../../utils/graticule';
 
 const getArrowEmoji = (dir) => {
   const arrows = { N: '⬆️', NE: '↗️', E: '➡️', SE: '↘️', S: '⬇️', SW: '↙️', W: '⬅️', NW: '↖️' };
@@ -417,6 +418,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           atmosphereColor="#38bdf8"
           atmosphereAltitude={0.15}
           showGraticules={showGraticule}
+          onGlobeReady={() => darkenGraticule(globeRef)}
         />
         {popup && (
           <div

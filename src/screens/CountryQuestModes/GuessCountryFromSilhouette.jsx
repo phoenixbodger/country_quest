@@ -7,6 +7,7 @@ import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
+import { darkenGraticule } from '../../utils/graticule';
 
 function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon, onFailed, onContinue, onGuessCountChange, disabled, onFocusCountry, gameFailed = false, guessLimit = null }) {
   const globeRef = useRef();
@@ -614,6 +615,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           atmosphereAltitude={0.15}
 
           showGraticules={showGraticule}
+          onGlobeReady={() => darkenGraticule(globeRef)}
         />
         {popup && (
           <div
