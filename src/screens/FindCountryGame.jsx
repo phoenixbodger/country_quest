@@ -277,7 +277,7 @@ function FindCountryGame({ onHome }) {
     const subtitle = d.isWin
       ? 'Correct!'
       : isFailure
-        ? 'End of Round'
+        ? ''
         : `${d.distanceKm.toLocaleString()} km ${getArrowEmoji(d.direction)}`;
     const accentColor = d.isWin ? '#22c55e' : isFailure ? '#fc8181' : d.color;
     const textColor = d.isWin ? '#68d391' : isFailure ? '#fc8181' : d.color;
@@ -332,17 +332,19 @@ function FindCountryGame({ onHome }) {
             onTouchStart={(e) => e.stopPropagation()}
           >
             ↻
-          </button>
-        </div>
-        <div style={{ color: textColor, fontWeight: 'bold', marginTop: '4px' }}>{subtitle}</div>
-        {!d.isWin && (
+</button>
+            </div>
+            {subtitle && (
+              <div style={{ color: textColor, fontWeight: 'bold', marginTop: '4px' }}>{subtitle}</div>
+            )}
+            {!d.isWin && (
           <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '4px' }}>
             {d.timedOut
-              ? `Incorrect. End of Round. Time is up. The answer was ${d.name}.`
+              ? 'Incorrect. End of Round. Time is up.'
               : d.alreadyGuessed
               ? 'Already guessed. Please choose again'
               : d.guessesExhausted || d.isFailure
-              ? `Incorrect. End of Round. The answer was ${d.name}.`
+              ? 'Incorrect. End of Round.'
               : 'Incorrect. Try again.'}
           </div>
         )}
@@ -731,7 +733,7 @@ const polygonData = useMemo(() => {
           {tried.length > 0 && (!roundOver || failed) && (
             <div style={{ color: '#fc8181', fontSize: '14px', fontWeight: '600', marginBottom: '10px' }}>
               {roundOver && failed
-                ? `Incorrect. End of Round. The answer was ${target.properties.name}.`
+                ? 'Incorrect. End of Round.'
                 : 'Incorrect. Please choose again'}
             </div>
           )}
@@ -839,7 +841,7 @@ const polygonData = useMemo(() => {
             {roundOver ? (
               failed ? (
                 <span style={{ color: '#fc8181' }}>
-                  ❌ {failReason} The answer was {target?.properties?.name}
+                  ❌ {failReason}
                 </span>
               ) : (
                 <span style={{ color: '#48bb78' }}>
