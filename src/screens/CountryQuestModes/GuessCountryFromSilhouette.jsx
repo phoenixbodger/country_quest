@@ -392,15 +392,15 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     }
   };
 
-  const labelsData = useMemo(() => {
+  const dotsData = useMemo(() => {
     if (!showLabels) return [];
     return worldPolygons
-      .filter(f => f.properties?.name && f.properties?.latlng?.length === 2)
+      .filter(f => f.properties?.cca3 && f.properties?.latlng?.length === 2)
       .map(f => ({
         lat: f.properties.latlng[0],
         lng: f.properties.latlng[1],
-        text: f.properties.name,
         cca3: f.properties.cca3,
+        type: 'country-dot',
       }));
   }, [worldPolygons, showLabels]);
 
@@ -421,7 +421,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     return labels;
   }, [showGraticule]);
 
-  const allLabelsData = useMemo(() => [...labelsData, ...graticuleLabelsData], [labelsData, graticuleLabelsData]);
+  const allLabelsData = useMemo(() => [...dotsData, ...graticuleLabelsData], [dotsData, graticuleLabelsData]);
 
   const polygonData = useMemo(() => {
     return worldPolygons
@@ -590,8 +590,8 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={500}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
-          onPolygonClick={handlePolygonClick}
-          onGlobeClick={handleMissClick}
+          onPolygonClick={showLabels ? null : handlePolygonClick}
+          onGlobeClick={showLabels ? null : handleMissClick}
           htmlElementsData={allLabelsData}
           htmlLat="lat"
           htmlLng="lng"
@@ -600,18 +600,43 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           htmlElement={d => {
             const el = document.createElement('div');
             const isGraticule = d.type === 'graticule';
-            el.style.color = isGraticule ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.95)';
-            el.style.fontSize = isGraticule ? '10px' : '11px';
-            el.style.fontWeight = isGraticule ? '500' : '700';
-            el.style.whiteSpace = 'nowrap';
-            el.style.pointerEvents = isGraticule ? 'none' : 'auto';
-            el.style.cursor = isGraticule ? 'default' : 'pointer';
-            el.style.userSelect = 'none';
-            el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
-            el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
-            el.textContent = d.text;
-            if (!isGraticule) {
-              el.addEventListener('click', () => {
+            const isCountryDot = d.type === 'country-dot';
+            
+            if (isGraticule) {
+              el.style.color = 'rgba(255,255,255,0.6)';
+              el.style.fontSize = '10px';
+              el.style.fontWeight = '500';
+              el.style.whiteSpace = 'nowrap';
+              el.style.pointerEvents = 'none';
+              el.style.cursor = 'default';
+              el.style.userSelect = 'none';
+              el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
+              el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
+              el.textContent = d.text;
+            } else if (isCountryDot) {
+              // Render a clickable dot for each country
+              el.style.width = '10px';
+              el.style.height = '10px';
+              el.style.borderRadius = '50%';
+              el.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+              el.style.border = '2px solid rgba(0, 0, 0, 0.8)';
+              el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
+              el.style.pointerEvents = 'auto';
+              el.style.cursor = 'pointer';
+              el.style.userSelect = 'none';
+              el.style.transition = 'transform 0.1s, box-shadow 0.1s';
+              
+              el.addEventListener('mouseenter', () => {
+                el.style.transform = 'scale(1.5)';
+                el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.6)';
+              });
+              el.addEventListener('mouseleave', () => {
+                el.style.transform = 'scale(1)';
+                el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
+              });
+              
+              el.addEventListener('click', (event) => {
+                event.stopPropagation();
                 if (disabled || gameWon || gameFailed) return;
                 showPopupForCca3(d.cca3);
                 if (showHighlightOnClick) {
