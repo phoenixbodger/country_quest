@@ -28,7 +28,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
   const [showGraticule, setShowGraticule] = useState(false);
   const [highlightCountry, setHighlightCountry] = useState(null);
   const [lastGuessedCca3, setLastGuessedCca3] = useState(null);
-  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
+  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons, showBorders);
 
   const targetCca3 = target?.properties?.cca3;
   const targetName = target?.properties?.name || targetCca3 || '';
@@ -383,7 +383,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor={(d) => d.strokeColor || 'rgba(0, 0, 0, 0)'}
+          polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={300}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}

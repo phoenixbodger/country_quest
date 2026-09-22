@@ -33,7 +33,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [lastGuessedCca3, setLastGuessedCca3] = useState(null);
   const [highlightCountry, setHighlightCountry] = useState(null);
-  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
+  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons, showBorders);
 
   // Reset when target changes
   useEffect(() => {
@@ -586,7 +586,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor={(d) => d.strokeColor || 'rgba(0, 0, 0, 0)'}
+          polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={500}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}

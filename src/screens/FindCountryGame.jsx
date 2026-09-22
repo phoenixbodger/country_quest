@@ -31,7 +31,7 @@ function FindCountryGame({ onHome }) {
   const [showGraticule, setShowGraticule] = useState(false);
   const [lastClickedCca3, setLastClickedCca3] = useState(null);
   const [highlightCountry, setHighlightCountry] = useState(null);
-  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
+  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons, showBorders);
 
   // session state
   const [phase, setPhase] = useState('setup'); // setup | playing | summary
@@ -787,7 +787,7 @@ const polygonData = useMemo(() => {
               polygonCapColor="color"
               polygonAltitude="altitude"
               polygonSideColor="rgba(0, 0, 0, 0)"
-              polygonStrokeColor={(d) => d.strokeColor || 'rgba(0, 0, 0, 0)'}
+              polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
               polygonHoverColor={roundOver ? "rgba(0, 0, 0, 0)" : "rgba(37, 99, 235, 0.8)"}
               polygonsTransitionDuration={300}
               polygonLabel={showNames ? (p => `<b>${p.properties?.name || ''}</b>`) : null}

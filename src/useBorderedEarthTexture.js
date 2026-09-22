@@ -6,11 +6,15 @@ import { geoEquirectangular, geoPath } from 'd3-geo';
 // null until the source image has loaded and the outlines have been drawn.
 // Keeps vector overlay (polygonStrokeColor) as complementary mechanism — this
 // hook provides the baked raster fallback that stays sharp at any zoom.
-export function useBorderedEarthTexture(worldPolygons) {
+export function useBorderedEarthTexture(worldPolygons, enabled = true) {
   const [url, setUrl] = useState(null);
 
   useEffect(() => {
-    if (!worldPolygons.length) return;
+    if (!enabled || !worldPolygons.length) {
+      // Reset URL when disabled or no polygons
+      if (!enabled) setUrl(null);
+      return;
+    }
 
     let cancelled = false;
     let objectUrl = null;
@@ -160,7 +164,7 @@ export function useBorderedEarthTexture(worldPolygons) {
       img.onload = null;
       img.onerror = null;
     };
-  }, [worldPolygons]);
+  }, [worldPolygons, enabled]);
 
   return url;
 }

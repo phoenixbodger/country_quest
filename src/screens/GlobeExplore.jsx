@@ -19,7 +19,7 @@ function GlobeExplore({ onHome }) {
   const [showGraticule, setShowGraticule] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [searchError, setSearchError] = useState(null);
-  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
+  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons, showBorders);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -253,7 +253,7 @@ function GlobeExplore({ onHome }) {
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor={(d) => d.strokeColor || 'rgba(0, 0, 0, 0)'}
+          polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
           polygonsTransitionDuration={300}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
           onPolygonClick={handlePolygonClick}

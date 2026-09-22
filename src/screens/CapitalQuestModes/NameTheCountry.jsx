@@ -55,7 +55,7 @@ function NameTheCountry({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [lastGuessedCca3, setLastGuessedCca3] = useState(null);
   const [highlightCountry, setHighlightCountry] = useState(null);
-  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons);
+  const borderedGlobeUrl = useBorderedEarthTexture(worldPolygons, showBorders);
 
   useEffect(() => {
     console.log('[NameTheCountry] popup changed', popup);
@@ -659,7 +659,7 @@ function NameTheCountry({
           polygonCapColor="color"
           polygonAltitude="altitude"
           polygonSideColor="rgba(0, 0, 0, 0)"
-          polygonStrokeColor="strokeColor"
+          polygonStrokeColor={showBorders ? "strokeColor" : "rgba(0, 0, 0, 0)"}
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={300}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
