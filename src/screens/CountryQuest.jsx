@@ -588,9 +588,9 @@ function CountryQuest({ onHome }) {
               silhouetteGuessCount={silhouetteGuessCount || silhouetteLive}
               onWon={handleCapitalWon}
               onFailed={handleCapitalFailed}
-              onPlayAgain={handleSkipToFlag}
+              onContinue={handleContinueFromCapital}
               onGuessCountChange={setCapitalLive}
-              disabled={questOver || capitalFailed}
+              disabled={questOver}
               gameFailed={capitalFailed}
               guessLimit={guessLimitPerStage}
             />
@@ -631,79 +631,6 @@ function CountryQuest({ onHome }) {
                 }}
               >
                 Continue to capital now →
-              </button>
-            </div>
-          )}
-
-          {stage === STAGES.CAPITAL && (capitalGuessCount > 0) && !questOver && !capitalFailed && (
-            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '20px',
-                background: 'rgba(72, 187, 120, 0.15)',
-                border: '1px solid #48bb78',
-                color: '#68d391',
-                fontSize: '13px',
-                fontWeight: 'bold',
-                animation: 'pulse 2s infinite',
-              }}>
-                <span style={{ fontSize: '14px' }}>✓</span>
-                Capital stage complete! Ready for flag stage
-              </div>
-              <button
-                onClick={handleSkipToFlag}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: '#48bb78',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 0 0 0 rgba(72, 187, 120, 0.7)',
-                  animation: 'pulse-ring 2s infinite',
-                }}
-              >
-                Continue to flag now →
-              </button>
-            </div>
-          )}
-
-          {capitalFailed && (
-            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '20px',
-                background: 'rgba(252, 129, 129, 0.15)',
-                border: '1px solid #fc8181',
-                color: '#fc8181',
-                fontSize: '13px',
-                fontWeight: 'bold',
-              }}>
-                <span style={{ fontSize: '14px' }}>✗</span>
-                Guess limit reached — Capital stage failed
-              </div>
-              <button
-                onClick={handleContinueFromCapital}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: '#3182ce',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                }}
-              >
-                Continue to flag →
               </button>
             </div>
           )}
