@@ -58,6 +58,11 @@ function GuessCapitalForQuest({ targetCountry, capitalIndex, silhouetteGuessCoun
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.cca3]);
 
+  // Sync gameFailed prop from parent (e.g., when Skip → Next is clicked in capital round)
+  useEffect(() => {
+    setCapitalFailed(gameFailed);
+  }, [gameFailed]);
+
   const handleGuessCapital = (rawCapital) => {
     if (disabled || gameFailed || gameFullyWon) return;
     const lower = normalizeCap(rawCapital);
