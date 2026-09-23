@@ -520,6 +520,24 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           <div style={{ color: '#a0aec0', fontSize: '14px', marginTop: '6px' }}>
             {advancing ? 'Advancing to capital challenge...' : 'Get ready for the capital!'}
           </div>
+          <button
+            onClick={onContinue}
+            style={{
+              marginTop: '12px',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              border: 'none',
+              background: '#48bb78',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              boxShadow: '0 0 0 0 rgba(72, 187, 120, 0.7)',
+              animation: 'pulse-ring 2s infinite',
+            }}
+          >
+            Continue to capital →
+          </button>
         </div>
       ) : gameFailed ? (
         <div style={{ background: '#742a2a', padding: '14px 18px', borderRadius: '8px', marginBottom: '12px', border: '1px solid #9b2c2c' }}>
