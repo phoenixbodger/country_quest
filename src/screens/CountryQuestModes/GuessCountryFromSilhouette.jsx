@@ -518,7 +518,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
             🎉 Correct! It was {displayName} ({guessCount} {guessCount === 1 ? 'guess' : 'guesses'})!
           </div>
           <div style={{ color: '#a0aec0', fontSize: '14px', marginTop: '6px' }}>
-            {advancing ? 'Advancing to capital challenge in 2 seconds...' : 'Get ready for the capital!'}
+            {advancing ? 'Advancing to capital challenge...' : 'Get ready for the capital!'}
           </div>
         </div>
       ) : gameFailed ? (
