@@ -27,7 +27,6 @@ function FindCountryGame({ onHome }) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showBorders, setShowBorders] = useState(false);
-  const [showNames, setShowNames] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
   const [showGraticule, setShowGraticule] = useState(false);
   const [lastClickedCca3, setLastClickedCca3] = useState(null);
@@ -755,9 +754,6 @@ const polygonData = useMemo(() => {
 
           <p style={{ color: '#a0aec0', marginBottom: '10px', fontSize: '14px' }}>
             Rotate the globe and click the country you think is the target.
-            {showNames
-              ? " Hover to see a country's name."
-              : " Country names are hidden — tick “Show country names” to reveal them on hover."}
             Scroll to zoom in — small islands get bigger and easier to click.
           </p>
 
@@ -770,15 +766,6 @@ const polygonData = useMemo(() => {
                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
               />
               Show borders
-            </label>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={showNames}
-                onChange={e => setShowNames(e.target.checked)}
-                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-              />
-              Show country names
             </label>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
               <input
@@ -814,7 +801,7 @@ const polygonData = useMemo(() => {
               polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
               polygonHoverColor={roundOver ? "rgba(0, 0, 0, 0)" : "rgba(37, 99, 235, 0.8)"}
               polygonsTransitionDuration={300}
-              polygonLabel={showNames ? (p => `<b>${p.properties?.name || ''}</b>`) : null}
+              polygonLabel={null}
               onPolygonClick={showLabels ? null : (p => handleGuess(p.properties?.cca3))}
               onGlobeClick={showLabels ? null : handleMissClick}
               enableAutoRotate={false}
