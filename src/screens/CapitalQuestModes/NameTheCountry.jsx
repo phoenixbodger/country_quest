@@ -479,13 +479,22 @@ function NameTheCountry({
     });
     
     return filtered
-      .map(f => ({
-        lat: f.properties.latlng[0],
-        lng: f.properties.latlng[1],
-        cca3: f.properties.cca3,
-        type: 'country-dot',
-      }));
-  }, [worldPolygons, showLabels]);
+      .map(f => {
+        const cca3 = f.properties.cca3;
+        const isCurrent = lastGuessedCca3 && lastGuessedCca3.toLowerCase() === cca3.toLowerCase();
+        const isHighlighted = highlightCountry && highlightCountry.cca3 && highlightCountry.cca3.toLowerCase() === cca3.toLowerCase();
+        const isGuessed = tried.some(t => t.cca3.toLowerCase() === cca3.toLowerCase());
+        return {
+          lat: f.properties.latlng[0],
+          lng: f.properties.latlng[1],
+          cca3,
+          type: 'country-dot',
+          isCurrent,
+          isHighlighted,
+          isGuessed,
+        };
+      });
+  }, [worldPolygons, showLabels, lastGuessedCca3, highlightCountry, tried]);
 
   const graticuleLabelsData = useMemo(() => {
     if (!showGraticule) return [];
@@ -709,10 +718,21 @@ function NameTheCountry({
               el.textContent = d.text;
             } else if (isCountryDot) {
               // Render a clickable dot for each country
+              // Determine color: purple for current/highlighted, grey for guessed, white for others
+              const isCurrentOrHighlighted = d.isCurrent || d.isHighlighted;
+              const isGuessed = d.isGuessed;
+              let bgColor;
+              if (isCurrentOrHighlighted) {
+                bgColor = '#c084fc'; // purple
+              } else if (isGuessed) {
+                bgColor = '#718096'; // grey
+              } else {
+                bgColor = 'rgba(255, 255, 255, 0.9)'; // white
+              }
               el.style.width = '10px';
               el.style.height = '10px';
               el.style.borderRadius = '50%';
-              el.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+              el.style.backgroundColor = bgColor;
               el.style.border = '2px solid rgba(0, 0, 0, 0.8)';
               el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
               el.style.pointerEvents = 'auto';
