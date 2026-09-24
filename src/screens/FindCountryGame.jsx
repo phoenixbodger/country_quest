@@ -28,6 +28,7 @@ function FindCountryGame({ onHome }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showBorders, setShowBorders] = useState(false);
   const [showNames, setShowNames] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
   const [showGraticule, setShowGraticule] = useState(false);
   const [lastClickedCca3, setLastClickedCca3] = useState(null);
   const [highlightCountry, setHighlightCountry] = useState(null);
@@ -631,6 +632,20 @@ const polygonData = useMemo(() => {
     return labels;
   }, [showGraticule]);
 
+  const dotsData = useMemo(() => {
+    if (!showLabels) return [];
+    return worldPolygons
+      .filter(f => f.properties?.cca3 && f.properties?.latlng?.length === 2)
+      .map(f => ({
+        lat: f.properties.latlng[0],
+        lng: f.properties.latlng[1],
+        cca3: f.properties.cca3,
+        type: 'country-dot',
+      }));
+  }, [worldPolygons, showLabels]);
+
+  const allLabelsData = useMemo(() => [...dotsData, ...graticuleLabelsData], [dotsData, graticuleLabelsData]);
+
   const formatTime = (s) => {
     if (s == null) return '—';
     const m = Math.floor(s / 60);
@@ -768,6 +783,15 @@ const polygonData = useMemo(() => {
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
+                checked={showLabels}
+                onChange={e => setShowLabels(e.target.checked)}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              Show All Countries
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
                 checked={showGraticule}
                 onChange={e => setShowGraticule(e.target.checked)}
                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
@@ -791,8 +815,8 @@ const polygonData = useMemo(() => {
               polygonHoverColor={roundOver ? "rgba(0, 0, 0, 0)" : "rgba(37, 99, 235, 0.8)"}
               polygonsTransitionDuration={300}
               polygonLabel={showNames ? (p => `<b>${p.properties?.name || ''}</b>`) : null}
-              onPolygonClick={p => handleGuess(p.properties?.cca3)}
-              onGlobeClick={handleMissClick}
+              onPolygonClick={showLabels ? null : (p => handleGuess(p.properties?.cca3))}
+              onGlobeClick={showLabels ? null : handleMissClick}
               enableAutoRotate={false}
               atmosphereColor="#38bdf8"
               atmosphereAltitude={0.15}
@@ -800,22 +824,55 @@ const polygonData = useMemo(() => {
               showGraticules={showGraticule}
               onGlobeReady={() => darkenGraticule(globeRef)}
 
-              htmlElementsData={graticuleLabelsData}
+              htmlElementsData={allLabelsData}
               htmlLat="lat"
               htmlLng="lng"
               htmlAltitude={0.015}
               htmlTransitionDuration={300}
               htmlElement={d => {
                 const el = document.createElement('div');
-                el.style.color = 'rgba(255,255,255,0.6)';
-                el.style.fontSize = '10px';
-                el.style.fontWeight = '500';
-                el.style.whiteSpace = 'nowrap';
-                el.style.pointerEvents = 'none';
-                el.style.userSelect = 'none';
-                el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
-                el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
-                el.textContent = d.text;
+                const isGraticule = d.type === 'graticule';
+                const isCountryDot = d.type === 'country-dot';
+
+                if (isGraticule) {
+                  el.style.color = 'rgba(255,255,255,0.6)';
+                  el.style.fontSize = '10px';
+                  el.style.fontWeight = '500';
+                  el.style.whiteSpace = 'nowrap';
+                  el.style.pointerEvents = 'none';
+                  el.style.userSelect = 'none';
+                  el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
+                  el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
+                  el.textContent = d.text;
+                } else if (isCountryDot) {
+                  // Render a clickable dot for each country
+                  el.style.width = '10px';
+                  el.style.height = '10px';
+                  el.style.borderRadius = '50%';
+                  el.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                  el.style.border = '2px solid rgba(0, 0, 0, 0.8)';
+                  el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
+                  el.style.pointerEvents = 'auto';
+                  el.style.cursor = 'pointer';
+                  el.style.userSelect = 'none';
+                  el.style.transition = 'transform 0.1s, box-shadow 0.1s';
+
+                  el.addEventListener('mouseenter', () => {
+                    el.style.transform = 'scale(1.5)';
+                    el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.6)';
+                  });
+                  el.addEventListener('mouseleave', () => {
+                    el.style.transform = 'scale(1)';
+                    el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
+                  });
+
+                  el.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    if (roundOver) return;
+                    handleGuess(d.cca3);
+                  });
+                }
+
                 return el;
               }}
             />
