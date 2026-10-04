@@ -5,7 +5,7 @@ import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { getProximityColor } from '../../distanceColors';
 import { formatLatLng } from '../../utils/formatCoords';
-import { darkenGraticule } from '../../utils/graticule';
+import { darkenGraticule, createOneDegreeGraticule } from '../../utils/graticule';
 import GlobeZoomControls from '../../components/GlobeZoomControls';
 
 const getArrowEmoji = (dir) => {
@@ -466,6 +466,8 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           atmosphereColor="#38bdf8"
           atmosphereAltitude={0.15}
           showGraticules={showGraticule}
+          customLayerData={showGraticule ? [{}] : []}
+          customThreeObject={() => createOneDegreeGraticule()}
           onGlobeReady={() => darkenGraticule(globeRef)}
         />
         <GlobeZoomControls globeRef={globeRef} minAltitude={1.8} maxAltitude={3.0} step={10} position="bottom-right" />

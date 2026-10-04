@@ -7,7 +7,7 @@ import { useBorderedEarthTexture } from '../useBorderedEarthTexture';
 import FindCountrySetup from './FindCountryGameModes/FindCountrySetup';
 import FindCountryStats from './FindCountryGameModes/FindCountryStats';
 import { getProximityColor } from '../distanceColors';
-import { darkenGraticule } from '../utils/graticule';
+import { darkenGraticule, createOneDegreeGraticule } from '../utils/graticule';
 import CoordinatesHint from '../components/CoordinatesHint';
 import { formatLatLng } from '../utils/formatCoords';
 import GlobeZoomControls from '../components/GlobeZoomControls';
@@ -819,6 +819,8 @@ const polygonData = useMemo(() => {
               atmosphereAltitude={0.15}
 
               showGraticules={showGraticule}
+              customLayerData={showGraticule ? [{}] : []}
+              customThreeObject={() => createOneDegreeGraticule()}
               onGlobeReady={() => darkenGraticule(globeRef)}
 
               htmlElementsData={allLabelsData}

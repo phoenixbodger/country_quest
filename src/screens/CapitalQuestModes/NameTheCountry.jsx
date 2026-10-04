@@ -6,7 +6,7 @@ import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
-import { darkenGraticule } from '../../utils/graticule';
+import { darkenGraticule, createOneDegreeGraticule } from '../../utils/graticule';
 import CoordinatesHint from '../../components/CoordinatesHint';
 import { formatLatLng } from '../../utils/formatCoords';
 import GlobeZoomControls from '../../components/GlobeZoomControls';
@@ -765,6 +765,8 @@ function NameTheCountry({
           atmosphereAltitude={0.15}
 
           showGraticules={showGraticule}
+          customLayerData={showGraticule ? [{}] : []}
+          customThreeObject={() => createOneDegreeGraticule()}
           onGlobeReady={() => darkenGraticule(globeRef)}
         />
         <GlobeZoomControls globeRef={globeRef} minAltitude={1.8} maxAltitude={3.0} step={10} position="bottom-right" />

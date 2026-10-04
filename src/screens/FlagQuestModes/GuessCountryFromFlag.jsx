@@ -8,7 +8,7 @@ import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
 import CoordinatesHint from '../../components/CoordinatesHint';
 import { formatLatLng } from '../../utils/formatCoords';
-import { darkenGraticule } from '../../utils/graticule';
+import { darkenGraticule, createOneDegreeGraticule } from '../../utils/graticule';
 import GlobeZoomControls from '../../components/GlobeZoomControls';
 
 function GuessCountryFromFlag({
@@ -708,6 +708,8 @@ function GuessCountryFromFlag({
           htmlAltitude={0.015}
           htmlTransitionDuration={300}
           showGraticules={showGraticule}
+          customLayerData={showGraticule ? [{}] : []}
+          customThreeObject={() => createOneDegreeGraticule()}
           onGlobeReady={() => darkenGraticule(globeRef)}
           htmlElement={d => {
             const el = document.createElement('div');
