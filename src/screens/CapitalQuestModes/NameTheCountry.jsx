@@ -456,7 +456,6 @@ function NameTheCountry({
   };
 
   const dotsData = useMemo(() => {
-    if (!showLabels) return [];
     const filtered = worldPolygons
       .filter(f => f.properties?.cca3 && f.properties?.latlng?.length === 2);
     
@@ -479,7 +478,7 @@ function NameTheCountry({
       }
     });
     
-    return filtered
+    const dots = filtered
       .map(f => {
         const cca3 = f.properties.cca3;
         const isCurrent = lastGuessedCca3 && lastGuessedCca3.toLowerCase() === cca3.toLowerCase();
@@ -495,6 +494,7 @@ function NameTheCountry({
           isGuessed,
         };
       });
+    return showLabels ? dots : dots.filter(d => d.isCurrent || d.isHighlighted);
   }, [worldPolygons, showLabels, lastGuessedCca3, highlightCountry, tried]);
 
   const graticuleLabelsData = useMemo(() => {

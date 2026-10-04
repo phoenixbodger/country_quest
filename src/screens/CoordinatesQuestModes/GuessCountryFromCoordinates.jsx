@@ -285,8 +285,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
   if (!target) return <div style={{ color: '#a0aec0' }}>Loading...</div>;
 
   const dotsData = useMemo(() => {
-    if (!showNames) return [];
-    return worldPolygons
+    const dots = worldPolygons
       .filter(f => f.properties?.cca3 && f.properties?.latlng?.length === 2)
       .map(f => {
         const cca3 = f.properties.cca3;
@@ -303,6 +302,8 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           isGuessed,
         };
       });
+    // When "Show All Countries" is off, show only the dot for the current/selected country.
+    return showNames ? dots : dots.filter(d => d.isCurrent || d.isHighlighted);
   }, [worldPolygons, showNames, lastGuessedCca3, highlightCountry, tried]);
 
   const graticuleLabelsData = useMemo(() => {

@@ -459,8 +459,7 @@ function GuessCountryFromFlag({
   };
 
   const dotsData = useMemo(() => {
-    if (!showLabels) return [];
-    return worldPolygons
+    const dots = worldPolygons
       .filter(f => f.properties?.cca3 && f.properties?.latlng?.length === 2)
       .map(f => {
         const cca3 = f.properties.cca3;
@@ -477,6 +476,8 @@ function GuessCountryFromFlag({
           isGuessed,
         };
       });
+    // When "Show All Countries" is off, show only the dot for the current/selected country.
+    return showLabels ? dots : dots.filter(d => d.isCurrent || d.isHighlighted);
   }, [worldPolygons, showLabels, lastGuessedCca3, highlightCountry, tried]);
 
   const graticuleLabelsData = useMemo(() => {
