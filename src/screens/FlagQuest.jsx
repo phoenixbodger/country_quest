@@ -364,11 +364,11 @@ function FlagQuest({ onHome }) {
       {phase === 'setup' && (
         <>
           <div style={{ display: 'flex', gap: '10px', maxWidth: '520px', margin: '10px auto 18px' }}>
-            <button onClick={() => setMode('country')} style={tabStyle(mode === 'country')} disabled={phase === 'playing'}>
-              🌍 Guess the Country
-            </button>
             <button onClick={() => setMode('flag')} style={tabStyle(mode === 'flag')} disabled={phase === 'playing'}>
               🏳️ Guess the Flag
+            </button>
+            <button onClick={() => setMode('country')} style={tabStyle(mode === 'country')} disabled={phase === 'playing'}>
+              🌍 Guess the Country
             </button>
           </div>
           <div style={{ fontSize: '13px', color: '#a0aec0', marginBottom: '10px' }}>
