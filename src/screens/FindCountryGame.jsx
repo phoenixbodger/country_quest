@@ -200,12 +200,17 @@ function FindCountryGame({ onHome }) {
     }
   }, [roundKey]);
 
-  // Track last clicked/guessed country for pink border
+  // Track last clicked/guessed country for pink border (only while the round is active)
   useEffect(() => {
-    if (tried.length > 0) {
+    if (roundOver) {
+      // Round is settled: clear the selected indicator so the last guess
+      // reverts to its proximity colour and its dot becomes grey / hidden.
+      setLastClickedCca3(null);
+      setHighlightCountry(null);
+    } else if (tried.length > 0) {
       setLastClickedCca3(tried[tried.length - 1].cca3);
     }
-  }, [tried.length, tried]);
+  }, [tried.length, tried, roundOver]);
 
   const getArrowEmoji = (dir) => {
     const arrows = { N: "⬆️", NE: "↗️", E: "➡️", SE: "↘️", S: "⬇️", SW: "↙️", W: "⬅️", NW: "↖️" };
@@ -613,7 +618,7 @@ const polygonData = useMemo(() => {
           altitude,
         };
       });
-  }, [worldPolygons, tried, roundOver, target, lastClickedCca3]);
+  }, [worldPolygons, tried, roundOver, target, lastClickedCca3, highlightCountry]);
 
   const graticuleLabelsData = useMemo(() => {
     if (!showGraticule) return [];
