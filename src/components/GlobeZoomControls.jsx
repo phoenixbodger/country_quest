@@ -1,8 +1,12 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useZoomControlsVisible } from '../useZoomControlsVisibility';
 
 /**
  * GlobeZoomControls - Reusable zoom in/out buttons for react-globe.gl components.
  * Uses a zoom-multiplier ("x") scale where 1.0x = the comfortable zoom reference.
+ *
+ * The controls are collapsed/expanded via an inline toggle. Visibility is a shared,
+ * persisted preference (see useZoomControlsVisibility), so it applies across all screens.
  *
  * @param {Object} props
  * @param {React.RefObject} props.globeRef - Ref to the Globe component
@@ -13,6 +17,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
  * @param {string} [props.position='bottom-right'] - Position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
  * @param {boolean} [props.allowZoomInput=true] - Whether to show the editable zoom readout
  * @param {boolean} [props.syncWithGlobeLimits=true] - Sync max zoom-in with globe's near-plane (texture detail) limit
+ * @param {boolean} [props.show=true] - Hard override: pass false to never render the controls (and no toggle)
  */
 function GlobeZoomControls({
   globeRef,
@@ -23,7 +28,12 @@ function GlobeZoomControls({
   position = 'bottom-right',
   allowZoomInput = true,
   syncWithGlobeLimits = true,
+  show = true,
 }) {
+  // Shared + persisted show/hide preference (respects the explicit `show` hard override).
+  const [controlsVisible, setControlsVisible] = useZoomControlsVisible();
+  if (show === false) return null;
+
   const [currentX, setCurrentX] = useState(null); // current zoom multiplier, e.g. 1.4x
   const [inputValue, setInputValue] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -277,7 +287,16 @@ function GlobeZoomControls({
   const atMaxZoom = currentX != null && currentX >= maxX - 1e-6;
   const atMinZoom = currentX != null && currentX <= minX + 1e-6;
 
-  return (
+  // Collapse / expand toggle — slightly smaller than the zoom buttons.
+  const toggleButtonStyle = {
+    ...buttonStyle,
+    width: '32px',
+    height: '32px',
+    fontSize: '16px',
+    alignSelf: 'center',
+  };
+
+  return controlsVisible ? (
     <div style={containerStyle}>
       <button
         onClick={zoomIn}
@@ -321,6 +340,26 @@ function GlobeZoomControls({
         title={`Zoom out (min ${formatX(minX)})`}
       >
         −
+      </button>
+
+      <button
+        onClick={() => setControlsVisible(false)}
+        style={toggleButtonStyle}
+        aria-label="Hide zoom controls"
+        title="Hide zoom controls"
+      >
+        ⌄
+      </button>
+    </div>
+  ) : (
+    <div style={containerStyle}>
+      <button
+        onClick={() => setControlsVisible(true)}
+        style={buttonStyle}
+        aria-label="Show zoom controls"
+        title="Show zoom controls"
+      >
+        🔍
       </button>
     </div>
   );
