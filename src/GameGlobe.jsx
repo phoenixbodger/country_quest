@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Globe from 'react-globe.gl';
 import { geoArea } from 'd3-geo';
+import GlobeZoomControls from './components/GlobeZoomControls';
 
 function distinctPointCount(ring) {
   const seen = new Set();
@@ -97,6 +98,7 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry, highlightCount
       width: '400px',
       height: '400px',
       boxShadow: '0 10px 30px -5px rgba(0,0,0,0.6)',
+      position: 'relative',
     }}>
       <Globe
         ref={globeRef}
@@ -114,6 +116,14 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry, highlightCount
 
         atmosphereColor="#38bdf8"
         atmosphereAltitude={0.15}
+      />
+      <GlobeZoomControls
+        globeRef={globeRef}
+        minAltitude={1.8}
+        maxAltitude={2.8}
+        step={10}
+        position="bottom-right"
+        syncWithGlobeLimits={true}
       />
     </div>
   );

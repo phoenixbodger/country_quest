@@ -8,6 +8,7 @@ import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
 import { darkenGraticule } from '../../utils/graticule';
+import GlobeZoomControls from '../../components/GlobeZoomControls';
 
 function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon, onFailed, onContinue, onGuessCountChange, disabled, onFocusCountry, onCoordsHint = null, gameFailed = false, guessLimit = null }) {
   const globeRef = useRef();
@@ -694,6 +695,7 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           showGraticules={showGraticule}
           onGlobeReady={() => darkenGraticule(globeRef)}
         />
+        <GlobeZoomControls globeRef={globeRef} minAltitude={1.8} maxAltitude={3.0} step={10} position="bottom-right" />
         {popup && (
           <div
             style={{

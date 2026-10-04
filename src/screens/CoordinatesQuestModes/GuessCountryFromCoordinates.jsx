@@ -6,6 +6,7 @@ import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { getProximityColor } from '../../distanceColors';
 import { formatLatLng } from '../../utils/formatCoords';
 import { darkenGraticule } from '../../utils/graticule';
+import GlobeZoomControls from '../../components/GlobeZoomControls';
 
 const getArrowEmoji = (dir) => {
   const arrows = { N: '⬆️', NE: '↗️', E: '➡️', SE: '↘️', S: '⬇️', SW: '↙️', W: '⬅️', NW: '↖️' };
@@ -467,6 +468,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           showGraticules={showGraticule}
           onGlobeReady={() => darkenGraticule(globeRef)}
         />
+        <GlobeZoomControls globeRef={globeRef} minAltitude={1.8} maxAltitude={3.0} step={10} position="bottom-right" />
         {popup && (
           <div
             style={{

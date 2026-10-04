@@ -5,6 +5,7 @@ import { buildCountryIndex, findNearestCountry } from '../nearestCountry';
 import { useBorderedEarthTexture } from '../useBorderedEarthTexture';
 import CountryOutlineThumb from '../components/CountryOutlineThumb';
 import { darkenGraticule } from '../utils/graticule';
+import GlobeZoomControls from '../components/GlobeZoomControls';
 
 function GlobeExplore({ onHome }) {
   const globeRef = useRef();
@@ -241,7 +242,7 @@ function GlobeExplore({ onHome }) {
         </label>
       </div>
 
-      <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '700px' }}>
+      <div ref={containerRef} style={{ margin: '10px auto', maxWidth: '700px', position: 'relative' }}>
         <Globe
           ref={globeRef}
           width={globeSize}
@@ -298,6 +299,7 @@ function GlobeExplore({ onHome }) {
           showGraticules={showGraticule}
           onGlobeReady={() => darkenGraticule(globeRef)}
         />
+        <GlobeZoomControls globeRef={globeRef} minAltitude={1.8} maxAltitude={3.0} step={10} position="bottom-right" />
       </div>
 
       {selectedCountry && (

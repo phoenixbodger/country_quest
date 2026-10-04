@@ -9,6 +9,7 @@ import { getProximityColor } from '../../distanceColors';
 import { darkenGraticule } from '../../utils/graticule';
 import CoordinatesHint from '../../components/CoordinatesHint';
 import { formatLatLng } from '../../utils/formatCoords';
+import GlobeZoomControls from '../../components/GlobeZoomControls';
 
 function NameTheCountry({
   countries,
@@ -766,6 +767,7 @@ function NameTheCountry({
           showGraticules={showGraticule}
           onGlobeReady={() => darkenGraticule(globeRef)}
         />
+        <GlobeZoomControls globeRef={globeRef} minAltitude={1.8} maxAltitude={3.0} step={10} position="bottom-right" />
         {popup && (
           <div
             style={{

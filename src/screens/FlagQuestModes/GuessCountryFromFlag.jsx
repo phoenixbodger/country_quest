@@ -9,6 +9,7 @@ import { getProximityColor } from '../../distanceColors';
 import CoordinatesHint from '../../components/CoordinatesHint';
 import { formatLatLng } from '../../utils/formatCoords';
 import { darkenGraticule } from '../../utils/graticule';
+import GlobeZoomControls from '../../components/GlobeZoomControls';
 
 function GuessCountryFromFlag({
   countries,
@@ -771,6 +772,7 @@ function GuessCountryFromFlag({
           atmosphereColor="#38bdf8"
           atmosphereAltitude={0.15}
         />
+        <GlobeZoomControls globeRef={globeRef} minAltitude={1.8} maxAltitude={3.0} step={10} position="bottom-right" />
         {popup && (
           <div
             style={{

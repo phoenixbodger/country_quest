@@ -10,6 +10,7 @@ import { getProximityColor } from '../distanceColors';
 import { darkenGraticule } from '../utils/graticule';
 import CoordinatesHint from '../components/CoordinatesHint';
 import { formatLatLng } from '../utils/formatCoords';
+import GlobeZoomControls from '../components/GlobeZoomControls';
 
 function FindCountryGame({ onHome }) {
   const globeRef = useRef();
@@ -883,6 +884,7 @@ const polygonData = useMemo(() => {
                 return el;
               }}
             />
+            <GlobeZoomControls globeRef={globeRef} minAltitude={1.8} maxAltitude={3.0} step={10} position="bottom-right" />
             {popup && (
               <div
                 style={{
