@@ -17,6 +17,7 @@ function GlobeExplore({ onHome }) {
   const [autoRotate, setAutoRotate] = useState(true);
   const [showBorders, setShowBorders] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
+  const [showDots, setShowDots] = useState(false);
   const [showGraticule, setShowGraticule] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [searchError, setSearchError] = useState(null);
@@ -72,6 +73,19 @@ function GlobeExplore({ onHome }) {
       }));
   }, [worldPolygons, showLabels]);
 
+  const dotsData = useMemo(() => {
+    if (!showDots) return [];
+    return worldPolygons
+      .filter(f => f.properties?.cca3 && f.properties?.latlng?.length === 2)
+      .map(f => ({
+        lat: f.properties.latlng[0],
+        lng: f.properties.latlng[1],
+        cca3: f.properties.cca3,
+        type: 'country-dot',
+        isSelected: selected && selected.cca3?.toLowerCase() === f.properties.cca3.toLowerCase(),
+      }));
+  }, [worldPolygons, showDots, selected]);
+
   const graticuleLabelsData = useMemo(() => {
     if (!showGraticule) return [];
     const labels = [];
@@ -95,7 +109,7 @@ function GlobeExplore({ onHome }) {
     return labels;
   }, [showGraticule]);
 
-  const allLabelsData = useMemo(() => [...labelsData, ...graticuleLabelsData], [labelsData, graticuleLabelsData]);
+  const allLabelsData = useMemo(() => [...labelsData, ...dotsData, ...graticuleLabelsData], [labelsData, dotsData, graticuleLabelsData]);
 
   const selectedCountry = selected
     ? countries.find(c => c.cca3 === selected.cca3)
@@ -236,6 +250,15 @@ function GlobeExplore({ onHome }) {
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
           <input
             type="checkbox"
+            checked={showDots}
+            onChange={e => setShowDots(e.target.checked)}
+            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+          />
+          Show country dots
+        </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
             checked={showGraticule}
             onChange={e => setShowGraticule(e.target.checked)}
             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
@@ -259,8 +282,8 @@ function GlobeExplore({ onHome }) {
           polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
           polygonsTransitionDuration={300}
           polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
-          onPolygonClick={handlePolygonClick}
-          onGlobeClick={handleMissClick}
+          onPolygonClick={showDots ? null : handlePolygonClick}
+          onGlobeClick={showDots ? null : handleMissClick}
 
           htmlElementsData={allLabelsData}
           htmlLat="lat"
@@ -270,23 +293,54 @@ function GlobeExplore({ onHome }) {
           htmlElement={d => {
             const el = document.createElement('div');
             const isGraticule = d.type === 'graticule';
-            el.style.color = isGraticule ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.95)';
-            el.style.fontSize = isGraticule ? '10px' : '11px';
-            el.style.fontWeight = isGraticule ? '500' : '700';
-            el.style.whiteSpace = 'nowrap';
-            el.style.pointerEvents = isGraticule ? 'none' : 'auto';
-            el.style.cursor = isGraticule ? 'default' : 'pointer';
-            el.style.userSelect = 'none';
-            // dark outline for legibility on any background
-            el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
-            el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
-            el.textContent = d.text;
+            const isCountryDot = d.type === 'country-dot';
 
-            if (!isGraticule) {
-              el.addEventListener('click', () => {
+            if (isCountryDot) {
+              // Clickable dot at each country's position (like the other globe games)
+              el.style.width = '10px';
+              el.style.height = '10px';
+              el.style.borderRadius = '50%';
+              el.style.backgroundColor = d.isSelected ? '#22c55e' : 'rgba(255, 255, 255, 0.9)';
+              el.style.border = '2px solid rgba(0, 0, 0, 0.8)';
+              el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
+              el.style.pointerEvents = 'auto';
+              el.style.cursor = 'pointer';
+              el.style.userSelect = 'none';
+              el.style.transition = 'transform 0.1s, box-shadow 0.1s';
+
+              el.addEventListener('mouseenter', () => {
+                el.style.transform = 'scale(1.5)';
+                el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.6)';
+              });
+              el.addEventListener('mouseleave', () => {
+                el.style.transform = 'scale(1)';
+                el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
+              });
+
+              el.addEventListener('click', (event) => {
+                event.stopPropagation();
                 const feature = worldPolygons.find(f => f.properties?.cca3 === d.cca3);
                 if (feature) handlePolygonClick(feature);
               });
+            } else {
+              el.style.color = isGraticule ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.95)';
+              el.style.fontSize = isGraticule ? '10px' : '11px';
+              el.style.fontWeight = isGraticule ? '500' : '700';
+              el.style.whiteSpace = 'nowrap';
+              el.style.pointerEvents = isGraticule ? 'none' : 'auto';
+              el.style.cursor = isGraticule ? 'default' : 'pointer';
+              el.style.userSelect = 'none';
+              // dark outline for legibility on any background
+              el.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.9)';
+              el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
+              el.textContent = d.text;
+
+              if (!isGraticule) {
+                el.addEventListener('click', () => {
+                  const feature = worldPolygons.find(f => f.properties?.cca3 === d.cca3);
+                  if (feature) handlePolygonClick(feature);
+                });
+              }
             }
 
             return el;
