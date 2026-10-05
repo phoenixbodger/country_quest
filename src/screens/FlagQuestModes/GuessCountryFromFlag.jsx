@@ -987,7 +987,7 @@ function GuessCountryFromFlag({
         <div style={{ marginTop: '10px', color: '#f6ad55', fontSize: '16px' }}>{lastHint}</div>
       )}
 
-      {tried.length > 0 && (
+      {(tried.length > 0 || ((effectiveGameWon || effectiveFailed) && target)) && (
         <div style={{ marginTop: '16px' }}>
           <div style={{ fontSize: '15px', color: '#a0aec0', marginBottom: '8px' }}>
             History — click a guess to centre the globe on it

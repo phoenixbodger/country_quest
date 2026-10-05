@@ -943,7 +943,7 @@ const polygonData = useMemo(() => {
             <div style={{ marginTop: '10px', color: '#f6ad55', fontSize: '16px' }}>{lastHint}</div>
           )}
 
-          {tried.length > 0 && (
+          {(tried.length > 0 || (roundOver && target)) && (
             <div style={{ marginTop: '16px' }}>
               <div style={{ fontSize: '15px', color: '#a0aec0', marginBottom: '8px' }}>
                 History — click a guess to centre the globe on it
