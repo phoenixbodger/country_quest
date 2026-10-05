@@ -281,7 +281,7 @@ function GlobeExplore({ onHome }) {
           polygonSideColor="rgba(0, 0, 0, 0)"
           polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
           polygonsTransitionDuration={300}
-          polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
+          polygonLabel={null}
           onPolygonClick={showDots ? null : handlePolygonClick}
           onGlobeClick={showDots ? null : handleMissClick}
 

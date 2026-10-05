@@ -401,7 +401,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={300}
-          polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
+          polygonLabel={null}
           onPolygonClick={showNames ? null : handlePolygonClick}
           onGlobeClick={showNames ? null : handleMissClick}
           htmlElementsData={allLabelsData}

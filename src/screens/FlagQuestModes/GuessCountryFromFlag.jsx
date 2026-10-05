@@ -706,7 +706,7 @@ function GuessCountryFromFlag({
           polygonStrokeColor={showBorders ? (d) => d.strokeColor || 'rgba(0, 0, 0, 0)' : 'rgba(0, 0, 0, 0)'}
           polygonHoverColor="rgba(37, 99, 235, 0.8)"
           polygonsTransitionDuration={300}
-          polygonLabel={p => `<b>${p.properties?.name || ''}</b>`}
+          polygonLabel={null}
           onPolygonClick={showLabels ? null : handlePolygonClick}
           onGlobeClick={showLabels ? null : handleMissClick}
           htmlElementsData={allLabelsData}
