@@ -79,6 +79,9 @@ function CapitalQuestSetup({ onStart, initialMode }) {
       <div style={{ fontSize: '13px', color: '#a0aec0', marginBottom: '16px' }}>
         Choose how many {itemNoun} to play, guess limits and timer. Unlimited means play until you End Game.
       </div>
+      <div style={{ fontSize: '12px', color: '#cbd5e0', background: '#2d3748', border: '1px solid #4a5568', borderRadius: '8px', padding: '10px 12px', marginBottom: '16px', lineHeight: 1.5 }}>
+        💡 How to play: name the capital for the given country, or name the country for the given capital. Click the globe to fill the box — wrong capitals are corrected (e.g. “Paris → France”). Press 💡 Hint for choices.
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
         <div>

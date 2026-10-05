@@ -12,7 +12,7 @@ const SECTIONS = [
     intro: 'The ultimate challenge. One mystery country, three tests in a row — silhouette, capital, then flag.',
     steps: [
       'Stage 1 — Silhouette: We show the country outline. Type the name or click the globe to fill the guess box, then press Guess.',
-      'Wrong guesses show distance + compass direction (e.g. “Brazil is 3,210 km away ↗️”) and a proximity color. History entries are color-coded by proximity — click one to centre the globe on that guess.',
+      'Wrong guesses show distance + compass direction (e.g. “Brazil is 3,210 km away ↗️”) and a proximity color; the click popup and each history entry also show its coordinates. History entries are color-coded by proximity — click one to centre the globe on that guess.',
       'Use the 3D globe: rotate, scroll to zoom (small islands get bigger), toggle “Show borders” / “Show All Countries” so islands are easier to find.',
       'Need help? Press 💡 Hint (4 choices) for a multiple-choice pick. You auto-advance to capital after 2 seconds when you win (or press “Continue to capital now”).',
       'Stage 2 — Capital: Type the capital of that same country. We validate only real capitals; wrong guesses show “Paris — capital of France”. Multi-capital countries require all capitals.',
@@ -29,9 +29,9 @@ const SECTIONS = [
     intro: 'We name a country — you find it on the 3D globe.',
     steps: [
       'Rotate the globe and click the country you think is the target.',
-      'Miss? We show how far you were and an arrow direction (e.g. “Germany is 1,120 km away ↘️”) and highlight tried countries in red.',
+      'Miss? We show how far you were and an arrow direction (e.g. “Germany is 1,120 km away ↘️”), and the click popup shows its coordinates. Tried countries are highlighted in red.',
       'History list stores every miss with distance & arrow — click a history entry to centre the globe there.',
-      'Toggle “Show borders” for country outlines and “Show country names” for hover labels. Scroll to zoom in on tiny islands.',
+      'Toggle “Show borders” for country outlines and “Show All Countries” for persistent name labels. Scroll to zoom in on tiny islands.',
       'Win condition: click the exact target country polygon.',
     ],
   },
@@ -89,10 +89,10 @@ const SECTIONS = [
     buttonLabel: 'Explore Globe',
     intro: 'No scoring, just exploration. Learn the world at your pace.',
     steps: [
-      'Spin, drag to rotate, scroll to zoom. Hover any country to see its name.',
-      'Click a country to focus on it and see a detail card: flag, official name, capital, region, area, landlocked, languages, borders, and a mini outline.',
+      'Spin, drag to rotate, scroll to zoom. No hover tooltips — turn on “Show all country names” to see labels.',
+      'Click a country — or its name/dot when labels are on — to focus on it and see a detail card: flag, official name, capital, region, area, landlocked, languages, borders, and a mini outline.',
       'Use Search: type a country name (with autocomplete) and press Search to fly to it.',
-      'Toggles: “Show borders” paints country borders on the earth texture; “Show All Countries” adds persistent labels on the globe.',
+      'Toggles: “Show borders” paints country borders on the earth texture; “Show all country names” shows a clickable dot + name for every country (click either to focus); “Show graticule” adds the lat/long grid.',
       'Use this to study before you quiz — then jump into any game.',
     ],
   },
@@ -123,7 +123,7 @@ function HowToPlay({ onHome, onSelect }) {
         <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#63b3ed', marginBottom: '8px' }}>💡 General tips for all games</div>
         <ul style={{ margin: 0, paddingLeft: '18px', color: '#e2e8f0', fontSize: '14px', lineHeight: 1.6 }}>
           <li><span style={{ color: 'white', fontWeight: 600 }}>Globe is your helper:</span> click any country on the globe to put its name in the guess box — you don’t have to type.</li>
-          <li><span style={{ color: 'white', fontWeight: 600 }}>Zoom for islands:</span> scroll to zoom in — small islands get much bigger and easier to click. Hover shows the name; toggle persistent names if needed.</li>
+          <li><span style={{ color: 'white', fontWeight: 600 }}>Zoom for islands:</span> scroll to zoom in — small islands get much bigger and easier to click. There is no hover tooltip — toggle the on-screen country names instead.</li>
           <li><span style={{ color: 'white', fontWeight: 600 }}>Distance & arrows:</span> wrong guesses tell you distance in km + compass arrow (⬆️ N, ↗️ NE, ➡️ E, ↘️ SE, etc.). Follow the arrows to narrow in.</li>
           <li><span style={{ color: 'white', fontWeight: 600 }}>Colors:</span> in Country Quest, Find Country Game, & Coordinates Quest, history dots/cards are colored by proximity — greener = closer.</li>
           <li><span style={{ color: 'white', fontWeight: 600 }}>Hints:</span> every mode has a 💡 Hint button — usually 4 or 6 choices — the correct answer is hidden among them.</li>

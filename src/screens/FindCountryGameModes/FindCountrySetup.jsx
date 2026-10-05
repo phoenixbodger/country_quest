@@ -62,6 +62,9 @@ function FindCountrySetup({ onStart }) {
       <div style={{ fontSize: '13px', color: '#a0aec0', marginBottom: '16px' }}>
         Choose how many countries to find, guess limits and timer. Unlimited means play until you End Game.
       </div>
+      <div style={{ fontSize: '12px', color: '#cbd5e0', background: '#2d3748', border: '1px solid #4a5568', borderRadius: '8px', padding: '10px 12px', marginBottom: '16px', lineHeight: 1.5 }}>
+        💡 How to play: we name a country — find it on the globe. Click it to guess; misses show distance, direction and coordinates, and tried countries turn red. Toggle “Show All Countries” for name labels.
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
         <div>

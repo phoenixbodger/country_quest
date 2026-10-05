@@ -177,7 +177,7 @@ function GlobeExplore({ onHome }) {
   return (
     <GameShell title="🌐 Globe" onHome={onHome}>
       <p style={{ color: '#a0aec0', marginBottom: '10px' }}>
-        Rotate and zoom freely. Hover a country to see its name, click to focus on it.
+        Rotate and zoom freely. Click a country — or its name/dot when labels are on — to focus on it.
         Scroll to zoom in — small islands get bigger and easier to click.
       </p>
 

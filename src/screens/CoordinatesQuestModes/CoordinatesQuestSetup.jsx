@@ -63,6 +63,9 @@ function CoordinatesQuestSetup({ onStart, initialMode }) {
       <div style={{ fontSize: '13px', color: '#a0aec0', marginBottom: '16px' }}>
         Choose how many rounds to play, guess limits and a timer. Unlimited means play until you End Game.
       </div>
+      <div style={{ fontSize: '12px', color: '#cbd5e0', background: '#2d3748', border: '1px solid #4a5568', borderRadius: '8px', padding: '10px 12px', marginBottom: '16px', lineHeight: 1.5 }}>
+        💡 How to play: we give you a latitude/longitude — click the matching country on the globe. Misses show distance, direction, coordinates and a proximity colour (greener = closer). Use “Show country names” and “Show graticule” to help.
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
         <div>
