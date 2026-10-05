@@ -140,6 +140,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
     if (sessionRoundOver) return;
     const existing = tried.find(t => t.cca3 === cca3);
     if (existing) {
+      focusCountry({ lat: existing.lat, lng: existing.lng, cca3 });
       setPopup({ cca3, name: existing.name, distanceKm: existing.distanceKm, direction: existing.direction, lat: existing.lat, lng: existing.lng, color: existing.color, isWin: false, isTried: true, alreadyGuessed: true });
       setLastHint(`${existing.name} is ${existing.distanceKm.toLocaleString()} km from the target ${getArrowEmoji(existing.direction)}.`);
       return;
@@ -245,7 +246,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           </button>
         </div>
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '6px' }}>{subtitle}</div>
-        {isTried && !isWin && !isFailure && !alreadyGuessed && (
+        {isTried && !isWin && !isFailure && (
           <div style={{ color: '#a0aec0', fontSize: '12px', marginTop: '4px', fontFamily: 'monospace' }}>
             {formatLatLng(d.lat, d.lng)}
           </div>
@@ -340,7 +341,11 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
         let color = 'rgba(0, 0, 0, 0)';
         let strokeColor = 'rgba(0, 0, 0, 0)';
         let altitude = 0.01;
-        if (isHighlighted) {
+        if (isTarget) {
+          color = '#22c55e';
+          strokeColor = '#000';
+          altitude = 0.03;
+        } else if (isHighlighted) {
           color = 'rgba(236, 72, 153, 0.4)';
           strokeColor = '#ec4899';
           altitude = 0.04;
@@ -348,10 +353,6 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
           strokeColor = '#ff00ff';
           color = 'rgba(255, 0, 255, 0.3)';
           altitude = 0.02;
-        } else if (isTarget) {
-          color = '#22c55e';
-          strokeColor = '#000';
-          altitude = 0.03;
         } else if (matched) {
           color = matched.color;
           strokeColor = '#000';

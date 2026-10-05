@@ -506,14 +506,18 @@ function GuessCountryFromFlag({
       .filter(p => p.geometry && (p.geometry.type === 'Polygon' || p.geometry.type === 'MultiPolygon'))
       .map(polygon => {
         const cca3 = (polygon.properties?.cca3 || '').toLowerCase();
-        const isTarget = (sessionActive ? (sessionRoundOver && !sessionFailed) : gameWon) && target && target.properties.cca3.toLowerCase() === cca3;
+        const isTarget = (sessionActive ? sessionRoundOver : (gameWon || gameFailed)) && target && target.properties.cca3.toLowerCase() === cca3;
         const matched = tried.find(t => t.cca3.toLowerCase() === cca3);
         const isCurrent = lastGuessedCca3 && lastGuessedCca3.toLowerCase() === cca3;
         const isHighlighted = highlightCountry && highlightCountry.cca3 && highlightCountry.cca3.toLowerCase() === cca3;
         let color = 'rgba(0, 0, 0, 0)';
         let strokeColor = 'rgba(0, 0, 0, 0)';
         let altitude = 0.01;
-        if (isHighlighted) {
+        if (isTarget) {
+          color = '#22c55e';
+          strokeColor = '#000';
+          altitude = 0.03;
+        } else if (isHighlighted) {
           color = 'rgba(236, 72, 153, 0.4)';
           strokeColor = '#ec4899';
           altitude = 0.04;
@@ -521,10 +525,6 @@ function GuessCountryFromFlag({
           strokeColor = '#ff00ff';
           color = 'rgba(255, 0, 255, 0.3)';
           altitude = 0.02;
-        } else if (isTarget) {
-          color = '#22c55e';
-          strokeColor = '#000';
-          altitude = 0.03;
         } else if (matched) {
           color = matched.color;
           strokeColor = '#000';
@@ -538,7 +538,7 @@ function GuessCountryFromFlag({
           altitude,
         };
       });
-  }, [worldPolygons, tried, gameWon, target, sessionActive, sessionRoundOver, sessionFailed, lastGuessedCca3, highlightCountry]);
+  }, [worldPolygons, tried, gameWon, gameFailed, target, sessionActive, sessionRoundOver, lastGuessedCca3, highlightCountry]);
 
   const openHint = () => {
     if (!target) return;
