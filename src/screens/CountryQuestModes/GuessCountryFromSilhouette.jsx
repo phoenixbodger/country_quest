@@ -166,7 +166,8 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
     if (cca3) setLastGuessedCca3(cca3);
     setHighlightCountry({ cca3, lat, lng });
     if (globeRef.current) {
-      globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+      const currentAltitude = globeRef.current.pointOfView()?.altitude ?? 2.5;
+      globeRef.current.pointOfView({ lat, lng, altitude: currentAltitude }, 1000);
     }
     if (onFocusCountry) onFocusCountry({ lat, lng, cca3 });
   };

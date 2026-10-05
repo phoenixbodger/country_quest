@@ -113,7 +113,8 @@ function GlobeExplore({ onHome }) {
     setSearchError(null);
     setAutoRotate(false);
     const [lat, lng] = polygon.properties?.latlng || [0, 0];
-    globeRef.current?.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+    const currentAltitude = globeRef.current?.pointOfView()?.altitude ?? 2.5;
+    globeRef.current?.pointOfView({ lat, lng, altitude: currentAltitude }, 1000);
   };
 
   const resetView = () => {
@@ -146,7 +147,8 @@ function GlobeExplore({ onHome }) {
     const latlng = feature?.properties?.latlng || match.latlng;
     if (latlng && latlng.length === 2 && globeRef.current) {
       const [lat, lng] = latlng;
-      globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+      const currentAltitude = globeRef.current.pointOfView()?.altitude ?? 2.5;
+      globeRef.current.pointOfView({ lat, lng, altitude: currentAltitude }, 1000);
     }
   };
 
