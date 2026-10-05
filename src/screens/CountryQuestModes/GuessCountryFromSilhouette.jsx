@@ -7,6 +7,7 @@ import { useBorderedEarthTexture } from '../../useBorderedEarthTexture';
 import { buildCountryIndex, findNearestCountry } from '../../nearestCountry';
 import { shuffleArray } from '../../utils/capitalHelpers';
 import { getProximityColor } from '../../distanceColors';
+import { formatLatLng } from '../../utils/formatCoords';
 import { darkenGraticule, createOneDegreeGraticule } from '../../utils/graticule';
 import GlobeZoomControls from '../../components/GlobeZoomControls';
 
@@ -298,6 +299,9 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
           </button>
         </div>
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '6px' }}>{subtitle}</div>
+        {isTried && !isWin && !isFailure && (
+          <div style={{ color: '#a0aec0', fontSize: '12px', marginTop: '4px', fontFamily: 'monospace' }}>{formatLatLng(d.lat, d.lng)}</div>
+        )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
           {!isWin && !isTried && !isFailure && (
             <button
@@ -858,19 +862,21 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: t.color, display: 'inline-block', flexShrink: 0 }} />
                   {t.name}
+                  <span style={{ color: '#a0aec0', fontSize: '12px', fontFamily: 'monospace' }}>{' '}{formatLatLng(t.lat, t.lng)}</span>
                 </span>
                 <span style={{ color: t.color, fontWeight: 'bold' }}>{t.distanceKm.toLocaleString()} km {getArrowEmoji(t.direction)}</span>
               </button>
             ))}
-            {(gameWon || gameFailed) && target && (
+            {(gameWon || gameFailed) && target && (() => {
+              const targetCca3 = target?.properties?.cca3 || target?.cca3;
+              const targetName = target?.properties?.name || countries.find(c => c.cca3 === targetCca3)?.name?.common || 'Unknown';
+              const [targetLat, targetLng] = target?.properties?.latlng || countries.find(c => c.cca3 === targetCca3)?.latlng || [0, 0];
+              return (
               <button
-                key={`correct-${target?.properties?.cca3 || target?.cca3}`}
+                key={`correct-${targetCca3}`}
                 onClick={() => {
-                  const targetCca3 = target?.properties?.cca3 || target?.cca3;
-                  const targetName = target?.properties?.name || countries.find(c => c.cca3 === targetCca3)?.name?.common || targetCca3;
-                  const [lat, lng] = target?.properties?.latlng || countries.find(c => c.cca3 === targetCca3)?.latlng || [0, 0];
-                  focusCountry({ lat, lng, cca3: targetCca3 });
-                  setPopup({ cca3: targetCca3, name: targetName, lat, lng, isWin: true, isTried: false });
+                  focusCountry({ lat: targetLat, lng: targetLng, cca3: targetCca3 });
+                  setPopup({ cca3: targetCca3, name: targetName, lat: targetLat, lng: targetLng, isWin: true, isTried: false });
                 }}
                 style={{
                   display: 'flex',
@@ -891,11 +897,13 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ec4899', display: 'inline-block', flexShrink: 0 }} />
-                  {target?.properties?.name || countries.find(c => c.cca3 === (target?.properties?.cca3 || target?.cca3))?.name?.common || 'Unknown'} <span style={{ color: '#ec4899', fontSize: '12px' }}>✓ Correct answer</span>
+                  {targetName} <span style={{ color: '#ec4899', fontSize: '12px' }}>✓ Correct answer</span>
+                  <span style={{ color: '#a0aec0', fontSize: '12px', fontFamily: 'monospace' }}>{' '}{formatLatLng(targetLat, targetLng)}</span>
                 </span>
                 <span style={{ color: '#ec4899', fontWeight: 'bold' }}>—</span>
               </button>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}

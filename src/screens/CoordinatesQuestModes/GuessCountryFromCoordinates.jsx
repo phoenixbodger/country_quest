@@ -565,6 +565,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ec4899', display: 'inline-block', flexShrink: 0 }} />
                   {targetName} <span style={{ color: '#ec4899', fontSize: '12px' }}>✓ Correct answer</span>
+                  <span style={{ color: '#a0aec0', fontSize: '12px', fontFamily: 'monospace' }}>{' '}{formatLatLng(targetCoords.lat, targetCoords.lng)}</span>
                 </span>
                 <span style={{ color: '#ec4899', fontWeight: 'bold' }}>—</span>
               </button>

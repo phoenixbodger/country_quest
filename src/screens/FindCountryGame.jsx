@@ -343,6 +343,9 @@ function FindCountryGame({ onHome }) {
             {subtitle && (
               <div style={{ color: textColor, fontWeight: 'bold', marginTop: '4px' }}>{subtitle}</div>
             )}
+            {!d.isWin && !isFailure && (
+              <div style={{ color: '#a0aec0', fontSize: '12px', marginTop: '4px', fontFamily: 'monospace' }}>{formatLatLng(d.lat, d.lng)}</div>
+            )}
             {!d.isWin && (
           <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '4px' }}>
             {d.timedOut

@@ -363,6 +363,9 @@ function NameTheCountry({
           </button>
         </div>
         <div style={{ color: textColor, fontWeight: 'bold', marginTop: '6px' }}>{subtitle}</div>
+        {isTried && !isWin && !isFailure && (
+          <div style={{ color: '#a0aec0', fontSize: '12px', marginTop: '4px', fontFamily: 'monospace' }}>{formatLatLng(d.lat, d.lng)}</div>
+        )}
         {isTried && !isWin && (
           <div style={{ color: '#fc8181', fontWeight: 'bold', marginTop: '6px', fontSize: '13px' }}>
             {(sessionActive ? (!sessionRoundOver && !guessesExhausted) : !gameFailed)

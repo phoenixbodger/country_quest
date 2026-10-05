@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatLatLng } from '../../utils/formatCoords';
 
 function FindCountryStats({ stats, config, onReplaySame, onChangeSettings, onHome, onCountryClick }) {
   const total = stats.history.length;
@@ -72,6 +73,9 @@ function FindCountryStats({ stats, config, onReplaySame, onChangeSettings, onHom
                         </span>
                       ) : (
                         h.targetName
+                      )}
+                      {h.targetLat != null && h.targetLng != null && (
+                        <span style={{ color: '#a0aec0', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'normal', marginLeft: '6px' }}>{formatLatLng(h.targetLat, h.targetLng)}</span>
                       )}
                     </td>
                     <td style={{ padding: '6px 8px', color: resultColor, fontWeight: 'bold' }}>{resultLabel}</td>
