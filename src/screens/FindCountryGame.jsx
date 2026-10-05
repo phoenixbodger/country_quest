@@ -646,6 +646,7 @@ const polygonData = useMemo(() => {
           (popup?.cca3 && popup.cca3.toLowerCase() === cca3.toLowerCase());
         const isHighlighted = highlightCountry && highlightCountry.cca3 && highlightCountry.cca3.toLowerCase() === cca3.toLowerCase();
         const isGuessed = tried.some(t => t.cca3.toLowerCase() === cca3.toLowerCase());
+        const isCorrect = roundOver && !failed && target?.properties?.cca3?.toLowerCase() === cca3.toLowerCase();
         return {
           lat: f.properties.latlng[0],
           lng: f.properties.latlng[1],
@@ -654,11 +655,12 @@ const polygonData = useMemo(() => {
           isCurrent,
           isHighlighted,
           isGuessed,
+          isCorrect,
         };
       });
     // When "Show All Countries" is off, show only the dot for the current/selected country.
-    return showLabels ? dots : dots.filter(d => d.isCurrent || d.isHighlighted);
-  }, [worldPolygons, showLabels, lastClickedCca3, highlightCountry, tried, popup]);
+    return showLabels ? dots : dots.filter(d => d.isCurrent || d.isHighlighted || d.isCorrect);
+  }, [worldPolygons, showLabels, lastClickedCca3, highlightCountry, tried, popup, roundOver, failed, target]);
 
   const allLabelsData = useMemo(() => [...dotsData, ...graticuleLabelsData], [dotsData, graticuleLabelsData]);
 
@@ -852,11 +854,13 @@ const polygonData = useMemo(() => {
                   el.textContent = d.text;
                 } else if (isCountryDot) {
                   // Render a clickable dot for each country
-                  // Determine color: purple for current/highlighted, grey for guessed, white for others
+                  // Determine color: forest green for correct, purple for current/highlighted, grey for guessed, white for others
                   const isCurrentOrHighlighted = d.isCurrent || d.isHighlighted;
                   const isGuessed = d.isGuessed;
                   let bgColor;
-                  if (isCurrentOrHighlighted) {
+                  if (d.isCorrect) {
+                    bgColor = '#228B22'; // forest green
+                  } else if (isCurrentOrHighlighted) {
                     bgColor = '#c084fc'; // purple
                   } else if (isGuessed) {
                     bgColor = '#718096'; // grey
