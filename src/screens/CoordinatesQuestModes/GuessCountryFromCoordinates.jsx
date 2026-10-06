@@ -194,6 +194,26 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
     }
   };
 
+  // Show country info popup when clicking a country dot (for "Show country names" mode).
+  // This is a preview - does not count as a guess.
+  const showPopupForCca3 = (cca3) => {
+    if (sessionRoundOver || sessionFailed) return;
+    const feat = features.find(f => f.properties.cca3 === cca3) || worldPolygons.find(f => f.properties?.cca3 === cca3);
+    if (!feat) return;
+    const existing = tried.find(t => t.cca3 === cca3);
+    setLastGuessedCca3(cca3);
+    const [lat, lng] = feat.properties.latlng || [0, 0];
+    const isWinCandidate = cca3 === targetCca3;
+    if (existing) {
+      setPopup({ cca3, name: existing.name, lat: existing.lat, lng: existing.lng, distanceKm: existing.distanceKm, direction: existing.direction, color: existing.color, isWin: false, isTried: true });
+    } else if (isWinCandidate && sessionRoundOver && !sessionFailed) {
+      setPopup({ cca3, name: feat.properties.name, lat, lng, isWin: true, isTried: false });
+    } else {
+      setPopup({ cca3, name: feat.properties.name, lat, lng, isWin: false, isTried: false });
+    }
+    setHighlightCountry({ cca3, lat, lng });
+  };
+
   const renderPopupElement = React.useCallback((d) => {
     if (!d) return null;
     const isWin = !!d.isWin;
@@ -462,8 +482,8 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
               
               el.addEventListener('click', (event) => {
                 event.stopPropagation();
-                if (sessionRoundOver || gameFailed) return;
-                showPopupForCca3(d.cca3);
+                if (sessionRoundOver || sessionFailed) return;
+                handleGuessForCca3(d.cca3);
               });
             }
 
