@@ -6,7 +6,7 @@ import FlagQuestSetup from './FlagQuestModes/FlagQuestSetup';
 import FlagQuestStats from './FlagQuestModes/FlagQuestStats';
 
 function FlagQuest({ onHome }) {
-  const [mode, setMode] = useState('country'); // 'country' = Flag→Country (globe), 'flag' = Country→Flag (MC 6)
+  const [mode, setMode] = useState('flag'); // 'country' = Flag→Country (globe), 'flag' = Country→Flag (MC 6)
   const [countries, setCountries] = useState([]);
   const [features, setFeatures] = useState([]);
   const [worldPolygons, setWorldPolygons] = useState([]);
