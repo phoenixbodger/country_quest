@@ -54,7 +54,7 @@ function GlobeExplore({ onHome }) {
           ...polygon,
           cca3,
           color: isSelected ? '#22c55e' : 'rgba(0, 0, 0, 0)',
-          altitude: isSelected ? 0.02 : 0.01,
+          altitude: isSelected ? 0.012 : 0.01,
           strokeColor: isSelected ? '#ff00ff' : 'rgba(0, 0, 0, 0)',
         };
       });

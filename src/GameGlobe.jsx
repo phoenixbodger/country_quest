@@ -69,7 +69,7 @@ function GameGlobe({ latestGuessObj, guesses = [], targetCountry, highlightCount
         if (isHighlighted) {
           color = 'rgba(236, 72, 153, 0.4)';
           strokeColor = '#ec4899';
-          altitude = 0.04;
+          altitude = 0.018;
         } else if (isCorrect) {
           color = '#22c55e';
           strokeColor = '#000';

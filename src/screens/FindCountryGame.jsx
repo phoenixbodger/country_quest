@@ -599,19 +599,19 @@ const polygonData = useMemo(() => {
         if (isHighlighted) {
           color = 'rgba(236, 72, 153, 0.4)';
           strokeColor = '#ec4899';
-          altitude = 0.04;
+          altitude = 0.018;
         } else if (isCurrent) {
           strokeColor = '#ff00ff';
           color = 'rgba(255, 0, 255, 0.3)';
-          altitude = 0.02;
+          altitude = 0.012;
         } else if (isTarget) {
           color = '#22c55e';
           strokeColor = '#000';
-          altitude = 0.03;
+          altitude = 0.014;
         } else if (matched) {
           color = matched.color;
           strokeColor = '#000';
-          altitude = 0.02;
+          altitude = 0.012;
         }
 
         return {
