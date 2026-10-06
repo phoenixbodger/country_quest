@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { geoEquirectangular, geoPath } from 'd3-geo';
 
-// Builds a globe texture (earth-day.jpg) with thick white country outlines baked
+// Builds a globe texture (earth-day.jpg) with country outlines baked
 // in, so borders are clearly visible at any zoom level. Returns a data URL, or
 // null until the source image has loaded and the outlines have been drawn.
 // Keeps vector overlay (polygonStrokeColor) as complementary mechanism — this
@@ -58,19 +58,19 @@ export function useBorderedEarthTexture(worldPolygons, enabled = true) {
         (f) => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
       );
 
-      // Dark underlay for contrast on bright landmasses — must actually stroke.
+      // Dark brown underlay for contrast on bright landmasses
       // Scale line width with canvas size so 4K borders stay visible after downscale.
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-      ctx.lineWidth = Math.max(4, 6 * scale);
+      ctx.strokeStyle = 'rgba(60, 30, 10, 0.6)';
+      ctx.lineWidth = Math.max(2, 3 * scale);
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
       ctx.beginPath();
       features.forEach((f) => path(f));
       ctx.stroke();
 
-      // Bright red border on top
-      ctx.strokeStyle = '#ff0000';
-      ctx.lineWidth = Math.max(2.2, 3 * scale);
+      // Brown border on top
+      ctx.strokeStyle = '#8B4513';
+      ctx.lineWidth = Math.max(1.2, 1.8 * scale);
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
       ctx.beginPath();
