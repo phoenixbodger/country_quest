@@ -1,0 +1,278 @@
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+
+/**
+ * GlobeZoomControls - Reusable zoom in/out buttons for react-globe.gl components
+ * 
+ * @param {Object} props
+ * @param {React.RefObject} props.globeRef - Ref to the Globe component
+ * @param {number} [props.minAltitude=1.0] - Minimum altitude (max zoom in)
+ * @param {number} [props.maxAltitude=3.0] - Maximum altitude (max zoom out)
+ * @param {number} [props.step=10] - Zoom step per click in percentage points (min 0)
+ * @param {number} [props.transitionDuration=500] - Animation duration in ms
+ * @param {string} [props.position='bottom-right'] - Position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+ * @param {boolean} [props.allowZoomInput=true] - Whether to show zoom percentage input field (also displays current zoom)
+ */
+function GlobeZoomControls({
+  globeRef,
+  minAltitude = 1.0,
+  maxAltitude = 3.0,
+  step = 10,
+  transitionDuration = 500,
+  position = 'bottom-right',
+  allowZoomInput = true,
+}) {
+  const [currentAltitude, setCurrentAltitude] = useState(null);
+  const [inputValue, setInputValue] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const altitudeRef = useRef(null);
+  const isMountedRef = useRef(true);
+
+  // Position styles
+  const positionStyles = {
+    'bottom-right': { bottom: '16px', right: '16px' },
+    'bottom-left': { bottom: '16px', left: '16px' },
+    'top-right': { top: '16px', right: '16px' },
+    'top-left': { top: '16px', left: '16px' },
+  };
+
+  const containerStyle = {
+    position: 'absolute',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    zIndex: 10,
+    pointerEvents: 'auto',
+    ...positionStyles[position],
+  };
+
+  const buttonStyle = {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    border: 'none',
+    background: 'rgba(15, 23, 42, 0.9)',
+    color: 'white',
+    cursor: 'pointer',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+    backdropFilter: 'blur(4px)',
+    transition: 'all 0.15s ease',
+    lineHeight: 1,
+  };
+
+  // Input field style - matches button height, centered between buttons
+  const inputStyle = {
+    width: '60px',
+    height: '40px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'rgba(15, 23, 42, 0.9)',
+    color: 'white',
+    fontSize: '14px',
+    fontWeight: 600,
+    textAlign: 'center',
+    outline: 'none',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+    backdropFilter: 'blur(4px)',
+    transition: 'all 0.15s ease',
+    padding: '0 8px',
+    appearance: 'textfield', // Remove spinner arrows in some browsers
+    MozAppearance: 'textfield', // Firefox
+  };
+
+  // Sync altitude from globe on mount and periodically
+  useEffect(() => {
+    isMountedRef.current = true;
+    const updateAltitude = () => {
+      if (!globeRef.current || !isMountedRef.current) return;
+      try {
+        const pov = globeRef.current.pointOfView();
+        if (pov && typeof pov.altitude === 'number') {
+          altitudeRef.current = pov.altitude;
+          setCurrentAltitude(pov.altitude);
+          // Update input value when altitude changes externally (not when user is typing)
+          if (!isInputFocused) {
+            const percent = Math.round(((maxAltitude - pov.altitude) / (maxAltitude - minAltitude)) * 200);
+            setInputValue(`${percent}%`);
+          }
+        }
+      } catch (e) {
+        // Globe not ready yet
+      }
+    };
+
+    updateAltitude();
+    const interval = setInterval(updateAltitude, 1000);
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
+  }, [globeRef, minAltitude, maxAltitude, isInputFocused]);
+
+  const getCurrentPOV = useCallback(() => {
+    if (!globeRef.current) return null;
+    try {
+      return globeRef.current.pointOfView();
+    } catch (e) {
+      return null;
+    }
+  }, [globeRef]);
+
+  // Convert percentage to altitude
+  const percentToAltitude = useCallback((percent) => {
+    const clamped = Math.max(0, Math.min(200, percent));
+    return maxAltitude - (clamped / 200) * (maxAltitude - minAltitude);
+  }, [minAltitude, maxAltitude]);
+
+  const zoom = useCallback((direction) => {
+    if (!globeRef.current) return;
+
+    const pov = getCurrentPOV();
+    const currentAlt = altitudeRef.current ?? pov?.altitude ?? 2.5;
+    // Convert current altitude to percentage (0-200)
+    const currentPercent = Math.round(((maxAltitude - currentAlt) / (maxAltitude - minAltitude)) * 200);
+    // Apply step in percentage points
+    const stepPercent = Math.max(0, step); // Ensure step is not negative
+    const newPercent = direction === 'in'
+      ? Math.min(200, currentPercent + stepPercent)
+      : Math.max(0, currentPercent - stepPercent);
+
+    if (newPercent === currentPercent) return;
+
+    const newAlt = percentToAltitude(newPercent);
+    altitudeRef.current = newAlt;
+    setCurrentAltitude(newAlt);
+
+    globeRef.current.pointOfView(
+      {
+        lat: pov?.lat ?? 0,
+        lng: pov?.lng ?? 0,
+        altitude: newAlt,
+      },
+      transitionDuration
+    );
+  }, [globeRef, getCurrentPOV, minAltitude, maxAltitude, step, transitionDuration, percentToAltitude]);
+
+  const zoomIn = useCallback(() => zoom('in'), [zoom]);
+  const zoomOut = useCallback(() => zoom('out'), [zoom]);
+
+  // Calculate zoom percentage (200% = minAltitude, 0% = maxAltitude)
+  const zoomPercent = currentAltitude != null
+    ? Math.round(((maxAltitude - currentAltitude) / (maxAltitude - minAltitude)) * 145)
+    : null;
+
+  // Handle input change - allow typing numbers and %
+  const handleInputChange = useCallback((e) => {
+    const value = e.target.value;
+    // Allow numbers, decimal point, and % sign
+    if (/^[\d.]*%?$/.test(value)) {
+      // Optional: prevent typing more than 3 digits before %
+      const numPart = value.replace('%', '');
+      if (numPart === '' || parseFloat(numPart) <= 200) {
+        setInputValue(value);
+      }
+    }
+  }, []);
+
+  // Handle input blur - apply zoom
+  const handleInputBlur = useCallback(() => {
+    setIsInputFocused(false);
+    const value = inputValue.replace('%', '').trim();
+    const percent = parseFloat(value);
+    if (!isNaN(percent) && globeRef.current) {
+      const newAlt = percentToAltitude(percent);
+      altitudeRef.current = newAlt;
+      setCurrentAltitude(newAlt);
+      const pov = getCurrentPOV();
+      globeRef.current.pointOfView(
+        {
+          lat: pov?.lat ?? 0,
+          lng: pov?.lng ?? 0,
+          altitude: newAlt,
+        },
+        transitionDuration
+      );
+      // Update input to show the clamped value with %
+      const clampedPercent = Math.max(0, Math.min(200, percent));
+      setInputValue(`${Math.round(clampedPercent)}%`);
+    } else {
+      // Restore current zoom percentage on invalid input
+      if (zoomPercent != null) {
+        setInputValue(`${zoomPercent}%`);
+      }
+    }
+  }, [inputValue, globeRef, getCurrentPOV, percentToAltitude, transitionDuration, zoomPercent]);
+
+  // Handle Enter key - apply zoom
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.target.blur();
+    } else if (e.key === 'Escape') {
+      // Restore current value on Escape
+      if (zoomPercent != null) {
+        setInputValue(`${zoomPercent}%`);
+      }
+      e.target.blur();
+    }
+  }, [zoomPercent]);
+
+  // Handle focus - select all text for easy replacement
+  const handleFocus = useCallback((e) => {
+    setIsInputFocused(true);
+    e.target.select();
+  }, []);
+
+  return (
+    <div style={containerStyle}>
+      <button
+        onClick={zoomIn}
+        style={{
+          ...buttonStyle,
+          opacity: zoomPercent != null && zoomPercent >= 200 ? 0.4 : 1,
+          cursor: zoomPercent != null && zoomPercent >= 200 ? 'not-allowed' : 'pointer',
+        }}
+        disabled={zoomPercent != null && zoomPercent >= 200}
+        aria-label="Zoom in"
+        title="Zoom in"
+      >
+        +
+      </button>
+
+      {/* Zoom percentage input (between buttons) */}
+      {allowZoomInput && (
+        <input
+          type="text"
+          value={inputValue || (zoomPercent != null ? `${zoomPercent}%` : '')}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          style={inputStyle}
+          placeholder={zoomPercent != null ? `${zoomPercent}%` : 'Zoom %'}
+          aria-label="Zoom percentage"
+          title="Enter zoom percentage (0-200)"
+        />
+      )}
+
+      <button
+        onClick={zoomOut}
+        style={{
+          ...buttonStyle,
+          opacity: zoomPercent != null && zoomPercent <= 0 ? 0.4 : 1,
+          cursor: zoomPercent != null && zoomPercent <= 0 ? 'not-allowed' : 'pointer',
+        }}
+        disabled={zoomPercent != null && zoomPercent <= 0}
+        aria-label="Zoom out"
+        title="Zoom out"
+      >
+        −
+      </button>
+    </div>
+  );
+}
+
+export default GlobeZoomControls;

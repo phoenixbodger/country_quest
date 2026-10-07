@@ -194,7 +194,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
     }
   };
 
-  // Show country info popup when clicking a country dot (for "Show country names" mode).
+  // Show country info popup when clicking a country dot (for "Show countries" mode).
   // This is a preview - does not count as a guess.
   const showPopupForCca3 = (cca3) => {
     if (sessionRoundOver || sessionFailed) return;
@@ -399,7 +399,7 @@ function GuessCountryFromCoordinates({ features, worldPolygons, target, sessionM
         </label>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
           <input type="checkbox" checked={showNames} onChange={e => setShowNames(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-          Show country names
+          Show countries
         </label>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#a0aec0', fontSize: '15px', cursor: 'pointer' }}>
           <input type="checkbox" checked={showGraticule} onChange={e => setShowGraticule(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
