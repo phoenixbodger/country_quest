@@ -10,6 +10,7 @@ import { getProximityColor } from '../../distanceColors';
 import { formatLatLng } from '../../utils/formatCoords';
 import { darkenGraticule, createOneDegreeGraticule } from '../../utils/graticule';
 import GlobeZoomControls from '../../components/GlobeZoomControls';
+import createCountryDot from '../../components/createCountryDot';
 
 function GuessCountryFromSilhouette({ countries, features, worldPolygons, target, onWon, onFailed, onContinue, onGuessCountChange, disabled, onFocusCountry, onCoordsHint = null, gameFailed = false, guessLimit = null }) {
   const globeRef = useRef();
@@ -651,42 +652,10 @@ function GuessCountryFromSilhouette({ countries, features, worldPolygons, target
               el.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))';
               el.textContent = d.text;
             } else if (isCountryDot) {
-              // Render a clickable dot for each country
-              // Determine color: forest green for correct, purple for current/highlighted, grey for guessed, white for others
-              const isCurrentOrHighlighted = d.isCurrent || d.isHighlighted;
-              const isGuessed = d.isGuessed;
-              let bgColor;
-              if (d.isCorrect) {
-                bgColor = '#228B22'; // forest green
-              } else if (isCurrentOrHighlighted) {
-                bgColor = '#c084fc'; // purple
-              } else if (isGuessed) {
-                bgColor = '#718096'; // grey
-              } else {
-                bgColor = 'rgba(255, 255, 255, 0.9)'; // white
-              }
-              el.style.width = '10px';
-              el.style.height = '10px';
-              el.style.borderRadius = '50%';
-              el.style.backgroundColor = bgColor;
-              el.style.border = '2px solid rgba(0, 0, 0, 0.8)';
-              el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
-              el.style.pointerEvents = 'auto';
-              el.style.cursor = 'pointer';
-              el.style.userSelect = 'none';
-              el.style.transition = 'transform 0.1s, box-shadow 0.1s';
-              
-              el.addEventListener('mouseenter', () => {
-                el.style.transform = 'scale(1.5)';
-                el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.6)';
-              });
-              el.addEventListener('mouseleave', () => {
-                el.style.transform = 'scale(1)';
-                el.style.boxShadow = '0 0 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.4)';
-              });
-              
-              el.addEventListener('click', (event) => {
-                event.stopPropagation();
+              // Clickable dot with a generous hit area. Its own touch/pointer handlers
+              // stop taps from reaching the globe canvas, so tapping a dot never spins
+              // the globe (see createCountryDot for details).
+              return createCountryDot(d, () => {
                 if (disabled || gameWon || gameFailed) return;
                 showPopupForCca3(d.cca3);
                 if (showHighlightOnClick) {
